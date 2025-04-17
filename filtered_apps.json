@@ -628,11 +628,6 @@
     "image": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/391220/0b8a37f32ed2b7c934be8aa94d53f71e274c6497.jpg"
   },
   {
-    "filename": "814380.zip",
-    "title": "Sekiro™ Shadows Die Twice (814380)",
-    "image": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/814380/2704fb9c5465045d00a5b19a0cb1e9bdabbd15cc.jpg"
-  },
-  {
     "filename": "750920.zip",
     "title": "Shadow of the Tomb Raider (750920)",
     "image": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/750920/7db38cff16091c9c058892fcfeee102a6ed589d9.jpg"
@@ -751,5 +746,10 @@
     "filename": "1942660.zip",
     "title": "WWE 2k23 (1942660)",
     "image": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/1942660/ed0cda379489020b16f9c68c76b637aa56fca6c6.jpg"
+  },
+  {
+    "filename": "814380.zip",
+    "title": "Sekiro™ Shadows Die Twice (814380)",
+    "image": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/814380/2704fb9c5465045d00a5b19a0cb1e9bdabbd15cc.jpg"
   }
   ]
