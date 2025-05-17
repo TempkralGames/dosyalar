@@ -1,0 +1,2320 @@
+# Decompiled with PyLingual (https://pylingual.io)
+# Internal filename: bot.py
+# Bytecode version: 3.13.0rc3 (3571)
+# Source timestamp: 2025-05-10 18:38:52 UTC (1746902332)
+
+global current_logged_username  # inserted
+import sys
+import os
+import json
+import shutil
+import socket
+import requests
+from datetime import datetime
+import time
+from threading import Timer
+import os
+import tempfile
+import os
+import uuid
+import re
+import os
+import sys
+import uuid
+import json
+import socket
+import platform
+import psutil
+import requests
+import threading
+import time
+from datetime import datetime, timezone
+import os
+import sys
+import uuid
+import json
+import socket
+import platform
+import psutil
+import requests
+import threading
+import time
+from datetime import datetime
+import zipfile
+import subprocess
+import requests
+import requests
+import json
+import hashlib
+import re
+import platform
+import subprocess
+import time
+import shutil
+import zipfile
+import webbrowser
+import mysql.connector
+import base64
+import json
+from pathlib import Path
+import wmi
+import traceback
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QProgressBar, QSplashScreen
+from PyQt5.QtCore import Qt
+from datetime import datetime
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton, QProgressBar, QSpacerItem, QSizePolicy
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon, QCursor
+from datetime import datetime
+import qtawesome as qta
+from mysql.connector import errorcode
+from PyQt5.QtCore import QUrl
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtCore import Qt, QPoint, QByteArray
+from PyQt5.QtGui import QMouseEvent, QImage
+from PyQt5.QtGui import QIcon, QPixmap, QFont, QPalette, QColor
+from cryptography.fernet import Fernet
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QStackedWidget, QMessageBox, QProgressBar, QGridLayout, QScrollArea, QComboBox, QWidget, QFrame, QSizePolicy, QSpacerItem, QFileDialog, QCheckBox
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QProgressBar
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QMovie
+from PyQt5.QtCore import Qt, QUrl, QThread, pyqtSignal
+from tkinter import messagebox
+import glob
+from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QAbstractAnimation
+from PyQt5.QtWidgets import QGraphicsOpacityEffect
+from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
+
+def get_api_config():
+    api_endpoint = 'http://45.147.46.22/api/api1.json'
+    try:
+        headers = {'User-Agent': 'NOWACS-API-Client/3.7.0'}
+        response = requests.get(api_endpoint, headers=headers, timeout=10)
+        response.raise_for_status()
+        content = response.content
+        content = content[3:] if content.startswith(b'\xef\xbb\xbf') else content
+        return json.loads(content)
+    except Exception as e:
+        print(f'API Config Error: {str(e)}')
+        return None
+API_CONFIG = get_api_config() or {}
+CONFIG_DOSYA_YOLU = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'config.json')
+API_ENDPOINT = 'http://45.147.46.22/api/api1.json'
+TELEGRAM_BOT_TOKEN = API_CONFIG.get('telegram_bot_token')
+TELEGRAM_CHAT_ID = API_CONFIG.get('telegram_chat_id')
+APP_VERSION = 'v1.0.0'
+root_dir = os.path.dirname(os.path.abspath(__file__))
+current_logged_username = None
+WEBHOOK_URL = API_CONFIG.get('webhook_url')
+WEBHOOK_URL_gun = API_CONFIG.get('webhook_url_gun')
+WEBHOOK_URL_game = API_CONFIG.get('webhook_url_game')
+DISCORD_INVITE_LINK = API_CONFIG.get('discord_invite_link')
+README_TEXT = API_CONFIG.get('readme_text')
+GAME_HEADERS = API_CONFIG.get('game_ids', [])
+REMOTE_SITE_URL = API_CONFIG.get('dowloand_api_url')
+
+class CustomWarningDialog(QDialog):
+    def __init__(self, title, message, parent=None):
+        super(self, self).__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setWindowTitle(title)
+        self.setStyleSheet('\n            QDialog {\n                background-color: #1a1a1a;\n                border: 2px solid #8a2be2;\n                border-radius: 10px;\n            }\n            QLabel {\n                color: #e0e0e0;\n                font-size: 14px;\n            }\n            QPushButton {\n                background-color: #8a2be2;\n                color: white;\n                padding: 8px 16px;\n                border: none;\n                border-radius: 5px;\n            }\n            QPushButton:hover {\n                background-color: #a64dff;\n            }\n        ')
+        self.setFixedSize(500, 300)
+        label = QLabel(message)
+        label.setAlignment(Qt.AlignCenter)
+        yes_button = QPushButton('Devam Et')
+        no_button = QPushButton('Vazgeç')
+        yes_button.clicked.connect(lambda: self.done(QDialog.Accepted))
+        no_button.clicked.connect(lambda: self.done(QDialog.Rejected))
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(yes_button)
+        button_layout.addWidget(no_button)
+        button_layout.addStretch()
+        layout = QVBoxLayout()
+        layout.addStretch()
+        layout.addWidget(label)
+        layout.addStretch()
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+class AntiTamperProtection:
+    def __init__(self, webhook_url, username=None, db_config=None):
+        self.webhook_url = webhook_url
+        self.username = username
+        self.db_config = db_config
+        self.suspicious_keywords = ['charles', 'fiddler', 'wireshark', 'burp', 'mitmproxy', 'cheatengine', 'dnspy', 'ilspy', 'reflector', 'ida', 'ollydbg', 'x64dbg', 'x32dbg', 'ghidra', 'immunity', 'radare2', 'frida', 'processhacker', 'procexp', 'httpdebugger', 'proxycap', 'proxifier', 'tcpview', 'sysinternals']
+        self.hwid = self.get_hwid()
+        self.ip = self.get_ip()
+        self.system_info = self.get_system_info()
+        self.json_username = None
+
+    def get_hwid(self):
+        try:
+            hwid = str(uuid.getnode())
+            return hwid
+        except:
+            return str(uuid.uuid4())
+
+    def get_ip(self):
+        try:
+            local_ip = socket.gethostbyname(socket.gethostname())
+            public_ip = requests.get('https://api.ipify.org').text
+            return {'local': local_ip, 'public': public_ip}
+        except:
+            return {'local': 'Unknown', 'public': 'Unknown'}
+
+    def get_system_info(self):
+        try:
+            username = os.getlogin()
+        return {'os': platform.system(), 'os_version': platform.version(), 'machine': platform.machine(), 'processor': platform.processor(), 'hostname': socket.gethostname(), 'username': username}
+        except:
+            pass  # postinserted
+        username = 'Unknown'
+
+    def create_user_json(self):
+        """\nKullanıcı tespit etmek için config klasöründe geçici JSON dosyası oluşturur.\n"""  # inserted
+        try:
+            config_path = Path(os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs'))
+            config_path.mkdir(parents=True, exist_ok=True)
+            json_path = config_path / 'user_temp.json'
+            self.username or None
+            username = 'unknown_user'
+            user_data = {'username': username, 'hwid': self.hwid, 'ip': self.ip, 'system_info': self.system_info, 'timestamp': datetime.now().isoformat()}
+            with open(json_path, 'w') as f:
+                json.dump(user_data, f)
+                    print(f'[+] Kullanıcı bilgileri {json_path} dosyasına kaydedildi')
+                    return True
+        except Exception as e:
+            print(f'[!] JSON oluşturma hatası: {e}')
+            return False
+
+    def check_for_suspicious_processes(self):
+        detected = []
+        for proc in psutil.process_iter(['name']):
+            try:
+                process_name = proc.info['name'].lower()
+                for keyword in self.suspicious_keywords:
+                    if keyword in process_name:
+                        pass  # postinserted
+                    else:  # inserted
+                        detected.append(process_name)
+        else:  # inserted
+            if detected:
+                self.create_user_json()
+                self.get_username_from_json() if not self.username else None
+            return list(set(detected))
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    def get_username_from_json(self):
+        """\nConfig klasöründeki JSON dosyasından kullanıcı adını alır.\n"""  # inserted
+        try:
+            json_path = Path(os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'nowacs_config.json'))
+            if json_path.exists():
+                with open(json_path, 'r') as f:
+                    config = json.load(f)
+                    self.json_username = config.get('username')
+                    if self.json_username and (not self.username):
+                        self.username = self.json_username
+                        print(f'[+] JSON\'dan kullanıcı adı alındı: {self.username}')
+                        return True
+            else:  # inserted
+                return False
+        except Exception as e:
+            print(f'[!] JSON okuma hatası: {e}')
+            return False
+
+    def freeze_user_account(self):
+        if not self.username and (not self.json_username) and (not self.get_username_from_json()):
+            print('[!] Kullanıcı bilgileri eksik, hesap dondurulamıyor')
+        return False
+
+    def send_alert(self, detected_processes):
+        try:
+            username = (self.username or self.json_username or 'Bilinmiyor')
+            embed = {'title': '⚠️ Şüpheli Yazılım Tespit Edildi! ⚠️', 'description': '**Tespit Edilenler:**\n' + '\n'.join((f'- `{proc}`' for proc in detected_processes)), 'color': 15158332, 'fields': [{'name': 'Kullanıcı Adı', 'value': username, 'inline': True}, {'name': 'HWID', 'value': self.hwid, 'inline': True}, {'name': 'Yerel IP', 'value': self.ip['local'], 'inline': True}, {'name': 'İşlemci', 'value': self.system_info['processor'], 'inline': True}, {'name': 'Sistem Kullanıcı Adı', 'value': self.system_info['username'], 'inline': True}, {'name': 'İşlem', 'value': '✅ **Hesap donduruldu**', 'inline': False}], 'timestamp':
+                pass  # postinserted
+            payload = {'embeds': [embed]}
+            headers = {'Content-Type': 'application/json'}
+            response = requests.post(self.webhook_url, data=json.dumps(payload), headers=headers)
+            response.raise_for_status()
+            return True
+        except Exception as e:
+            print(f'[!] Webhook gönderim hatası: {e}')
+            return False
+
+    def monitor(self, check_interval=1):
+        pass
+        detected = self.check_for_suspicious_processes()
+        if detected:
+            pass  # postinserted
+        else:  # inserted
+            time.sleep(check_interval)
+            continue
+
+def start_protection():
+    webhook_url = API_CONFIG.get('webhook_url_1')
+    username = current_logged_username
+    db_config = API_CONFIG.get('db')
+    protector = AntiTamperProtection(webhook_url, username, db_config)
+    protector.create_user_json()
+    first_check = protector.check_for_suspicious_processes()
+    if first_check:
+        print(f'[!] Başlangıçta şüpheli işlem bulundu: {first_check}')
+        if username and db_config:
+            protector.freeze_user_account()
+        protector.send_alert(first_check)
+        try:
+            quit_timer = QTimer()
+            quit_timer.setSingleShot(True)
+            quit_timer.timeout.connect(lambda: QApplication.quit())
+            quit_timer.start(100)
+            app = QApplication.instance() or QApplication([])
+            msg_box = QMessageBox()
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setWindowTitle('Güvenlik İhlali Tespit Edildi')
+            msg_box.setText('Hesabınız kalıcı olarak donduruldu, discord\'dan Ticket açınız.')
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.exec_()
+            os._exit(1)
+    thread = threading.Thread(target=protector.monitor, daemon=True)
+    thread.start()
+    print('[+] Anti-tamper koruma aktif! Sürekli anlık tarama yapılıyor.')
+        except Exception as e:
+            print(f'[!] Mesaj gösterme hatası: {e}')
+            print('[!] Hesabınız kalıcı olarak donduruldu, discord\'dan Ticket açınız.')
+            os._exit(1)
+
+class MembershipController:
+    def __init__(self, main_app):
+        self.main_app = main_app
+        self.webhook_url = API_CONFIG.get('webhook_url_2')
+        self.check_interval = 300
+        self.timer = None
+        self.db_config = API_CONFIG.get('db')
+        self.start_membership_check()
+
+    def start_membership_check(self):
+        self.check_membership_status()
+        self.timer = Timer(self.check_interval, self.start_membership_check)
+        self.timer.daemon = True
+        self.timer.start()
+
+    def stop_membership_check(self):
+        if self.timer:
+            self.timer.cancel()
+        return None
+
+    def get_db_connection(self):
+        try:
+            connection = mysql.connector.connect(**self.db_config)
+            return connection
+        except mysql.connector.Error as err:
+            self.send_webhook_notification(f'Veritabanı bağlantı hatası: {err}', error=True)
+            return None
+
+    def get_user_from_db(self, username):
+        connection = self.get_db_connection()
+        if not connection:
+            pass  # postinserted
+        return None
+
+    def check_membership_status(self):
+        try:
+            if not hasattr(self.main_app, 'username') or not self.main_app.username:
+                self.send_webhook_notification('Kullanıcı bilgisi bulunamadı.', error=True)
+            return None
+        except Exception as e:
+            self.send_webhook_notification(f'Üyelik kontrolü sırasında hata: {str(e)}', error=True)
+
+    def update_app_user_info(self, user_data):
+        try:
+            self.main_app.hesap = user_data.get('hesap', self.main_app.hesap if hasattr(self.main_app, 'hesap') else None)
+            if user_data.get('bitis_tarihi'):
+                self.main_app.bitis_tarihi = str(user_data.get('bitis_tarihi'))
+            if user_data.get('kayit_tarihi'):
+                self.main_app.kayit_tarihi = str(user_data.get('kayit_tarihi'))
+            return
+        except Exception as e:
+            self.send_webhook_notification(f'Kullanıcı bilgilerini güncelleme hatası: {str(e)}', error=True)
+
+    def clean_steam_plugins(self):
+        steam_path = None
+        pass
+        try:
+            with open(CONFIG_DOSYA_YOLU, 'r', encoding='utf-8') as dosya:
+                veri = json.load(dosya)
+                steam_path = veri.get('steam_path')
+                    if not steam_path:
+                        self.send_webhook_notification('Steam yolu yapılandırma dosyasında (config.json) bulunamadı veya boş.', error=True)
+                        return None
+        except FileNotFoundError:
+            self.send_webhook_notification(f'Hata: Yapılandırma dosyası bulunamadı: {CONFIG_DOSYA_YOLU}', error=True)
+            except Exception as e:
+                self.send_webhook_notification(f'Steam eklenti temizleme hatası: {str(e)}', error=True)
+
+    def get_steam_path(self):
+        return self.steam_path if hasattr(self, 'steam_path') and self.steam_path else None
+
+    def send_webhook_notification(self, message, error=False, plugin_cleaned=False):
+        """Discord webhook\'a bildirim gönderir"""  # inserted
+        try:
+            embed_color = 15158332 if error else 3066993
+            embed_color = 15105570 if plugin_cleaned else embed_color
+            username = self.main_app.username if hasattr(self.main_app, 'username') else 'Bilinmeyen Kullanıcı'
+            payload = {'username': 'Sistem Bildirimi', 'embeds': [{'title': 'Plugin Temizliği' if plugin_cleaned else 'Sistem Bildirimi', 'description': message, 'color': embed_color, 'fields': [{'name': 'Kullanıcı', 'value': username, 'inline': True}, {'name': 'Zaman', 'value': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'inline': True}]}]}
+            requests.post(self.webhook_url, json=payload)
+        except Exception as e:
+            print(f'Webhook gönderimi sırasında hata: {str(e)}')
+
+    def send_expiry_notification_webhook(self, username, hesap_tipi):
+        """Üyelik sona erdiğinde özel bir webhook bildirimi gönderir"""  # inserted
+        try:
+            payload = {'username': 'Üyelik Sona Erdi', 'embeds': [{'title': '⚠️ ÜYELİK SONA ERDİ ⚠️', 'description': f'**{username}** kullanıcısının **{hesap_tipi}** üyeliği sona erdi. stplug-in klasörü temizlendi.', 'color': 15158332, 'fields': [{'name': 'İşlem', 'value': 'Steam eklentileri temizlendi', 'inline': True}, {'name': 'Zaman', 'value': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'inline': True}], 'footer': {'text': 'Otomatik sistem bildirimi'}}]}
+            requests.post(self.webhook_url, json=payload)
+        except Exception as e:
+            print(f'Üyelik sona erme bildirimi gönderimi sırasında hata: {str(e)}')
+
+def get_api_data():
+    try:
+        headers = {'User-Agent': 'NOWACS-API-Client/3.7.0'}
+        response = requests.get(API_ENDPOINT, headers=headers, timeout=10)
+        response.raise_for_status()
+        content = response.content
+        content = content[3:] if content.startswith(b'\xef\xbb\xbf') else content
+        return json.loads(content)
+    except Exception as e:
+        print(f'API Hatası: {str(e)}')
+        return None
+
+def get_ip_address():
+    try:
+        return requests.get('https://api.ipify.org', timeout=5).text.strip()
+    except Exception as e:
+        print(f'IP Hatası: {str(e)}')
+        return 'N/A'
+
+def get_bios_serial():
+    bios_serial = 'N/A'
+    system_platform = platform.system()
+    try:
+        if system_platform == 'Windows':
+            output = subprocess.check_output(['wmic', 'bios', 'get', 'serialnumber'], text=True, encoding='utf-8').strip()
+            lines = [line.strip() for line in output.split('\n') if line.strip()]
+                bios_serial = lines[1] if len(lines) > 1 else 'N/A'
+    except subprocess.CalledProcessError as e:
+        print(f'Hata: {e}')
+        bios_serial = 'N/A (Komut Çalıştırılamadı)'
+    except Exception as e:
+        print(f'Bilinmeyen hata: {e}')
+        bios_serial = 'N/A (Bilinmeyen Hata)'
+
+def get_hwid():
+    system_info = {'platform': platform.system(), 'machine': platform.machine(), 'processor': platform.processor(), 'architecture': str(platform.architecture()), 'node': platform.node()}
+    hwid = get_bios_serial()
+    if system_info['platform'] == 'Windows':
+        import wmi
+        c = wmi.WMI()
+        try:
+            system_info['os_serial'] = c.Win32_OperatingSystem()[0].SerialNumber or 'N/A'
+        try:
+            system_info['base_board_serial'] = c.Win32_BaseBoard()[0].SerialNumber or 'N/A'
+        try:
+            system_info['cpu_id'] = c.Win32_Processor()[0].ProcessorId or 'N/A'
+        try:
+            system_info['volume_serial'] = c.Win32_DiskDrive()[0].SerialNumber or 'N/A'
+            return (hwid, system_info)
+    except:
+        system_info['os_serial'] = 'N/A'
+    except:
+        system_info['base_board_serial'] = 'N/A'
+    except:
+        system_info['cpu_id'] = 'N/A'
+    except:
+        system_info['volume_serial'] = 'N/A'
+
+def send_data_to_webhook(self, hwid, ip_address, username, system_info, success=False, message=''):
+    if not self.WEBHOOK_URL:
+        pass  # postinserted
+    return None
+
+def send_data_to_telegram_bot(embed_data):
+    try:
+        telegram_bot_token = API_CONFIG.get('telegram_bot_token')
+        chat_id = API_CONFIG.get('telegram_chat_id')
+        if telegram_bot_token and (not chat_id):
+            pass  # postinserted
+        return False
+    except Exception as e:
+        print(f'Telegram bot hatası: {str(e)}')
+        return False
+
+def restart_app():
+    python = sys.executable
+    os.execl(python, python, *sys.argv)
+
+def check_login(self):
+    username = self.username_input.text()
+    self.username = username
+    password = self.password_input.text()
+    hwid, system_info = get_hwid()
+    ip_address = get_ip_address()
+    cursor = self.connect_to_db()
+    if cursor:
+        try:
+            sql = 'SELECT hwid, ip_address, hesap, kayit_tarihi, bitis_tarihi FROM users WHERE username = %s'
+            val = (username,)
+            cursor.execute(sql, val)
+            result = cursor.fetchone()
+            if result:
+                stored_hwid = result[0]
+                stored_ip_address = result[1]
+                self.hesap = result[2]
+                self.kayit_tarihi = result[3]
+                self.bitis_tarihi = result[4]
+                if stored_hwid is None:
+                    sql = '\n                          UPDATE users                           SET hwid              = %s,                               ip_address        = %s,                               platform          = %s,                               machine           = %s,                               processor         = %s,                               architecture      = %s,                               node              = %s,                               os_serial         = %s,                               base_board_serial = %s,                               cpu_id            = %s,                               volume_serial     = %s\n                          WHERE username = %s                           '
+                    val = (hwid, ip_address, system_info.get('platform', 'N/A'), system_info.get('machine', 'N/A'), system_info.get('processor', 'N/A'), system_info.get('architecture', 'N/A'), system_info.get('node', 'N/A'), system_info.get('os_serial', 'N/A'), system_info.get('base_board_serial', 'N/A'), system_info.get('cpu_id', 'N/A'), system_info.get('volume_serial', 'N/A'), username)
+                    cursor.execute(sql, val)
+                    self.mydb.commit()
+                    send_data_to_webhook(self, hwid, ip_address, username, system_info, success=True, message='HWID, IP adresi ve sistem bilgileri kaydedildi ve giriş yapıldı.')
+                    self.accept()
+                break
+                if self.mydb and self.mydb.is_connected():
+                    self.mydb.close()
+        except Exception as e:
+            print(f'Veritabanı hatası: {e}')
+            QMessageBox.critical(self, 'Hata', f'Veritabanı hatası: {e}')
+
+def authenticate(self, auto_login=False):
+    global current_logged_username  # inserted
+    username = self.username_input.text()
+    password = self.password_input.text()
+    if not auto_login and (not username or not password):
+        QMessageBox.warning(self, 'Eksik Bilgi!', 'Kullanıcı adı ve şifre alanları boş bırakılamaz!')
+    return None
+
+class LoginWindow(QDialog):
+    def __init__(self):
+        super().__init__()
+        api_data = get_api_data()
+        if api_data:
+            self.WEBHOOK_URL = api_data.get('webhook_url')
+            self.WEBHOOK_URL_gun = api_data.get('webhook_url_gun')
+            self.WEBHOOK_URL_game = api_data.get('webhook_url_game')
+            self.DISCORD_INVITE_LINK = api_data.get('discord_invite_link')
+            self.README_TEXT = api_data.get('readme_text')
+        self.setWindowTitle('NowacS Development')
+        ico_path = 'ico2.ico'
+        self.setWindowIcon(QIcon(ico_path)) if os.path.exists(ico_path) else None
+        self.setFixedSize(400, 480)
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.yukle_ve_ayarla_ikon()
+        self.setup_ui()
+        self.api_data = get_api_data()
+        self.center_on_screen()
+        self.oldPos = None
+
+    def center_on_screen(self):
+        screen_geometry = QApplication.desktop().availableGeometry()
+        window_geometry = self.frameGeometry()
+        window_geometry.moveCenter(screen_geometry.center())
+        self.move(window_geometry.topLeft())
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.oldPos = event.globalPos()
+        return None
+
+    def mouseMoveEvent(self, event):
+        if self.oldPos:
+            delta = QPoint(event.globalPos() - self.oldPos)
+            self.move(self.pos() + delta)
+            self.oldPos = event.globalPos()
+        return None
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.oldPos = None
+        return None
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+            self.login_btn.click()
+        return None
+
+    def yukle_ve_ayarla_ikon(self):
+        api_url = API_ENDPOINT
+        json_anahtar_adi = 'png'
+        try:
+            response = requests.get(api_url)
+            response.raise_for_status()
+            content = response.content
+            content = content[3:] if content.startswith(b'\xef\xbb\xbf') else content
+            json_data = json.loads(content)
+            if json_anahtar_adi in json_data:
+                png_data_base64 = json_data[json_anahtar_adi]
+                image_data_bytes = base64.b64decode(png_data_base64)
+                pixmap = QPixmap()
+                pixmap.loadFromData(image_data_bytes, 'PNG')
+                if not pixmap.isNull():
+                    icon = QIcon(pixmap)
+                    self.setWindowIcon(icon)
+                return None
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f'API\'den JSON çekme hatası: {e}')
+        except json.JSONDecodeError as e:
+            print(f'JSON ayrıştırma hatası: {e}')
+            return
+        except base64.binascii.Error as e:
+            print(f'Base64 decode hatası: {e}')
+            return
+        except Exception as e:
+            print(f'Beklenmeyen bir hata oluştu: {e}')
+            return None
+
+    def setup_ui(self):
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        title_bar = QWidget()
+        title_bar.setFixedHeight(40)
+        title_bar.setStyleSheet('\n            background-color: #8a2be2;\n            border: none;\n            border-top-left-radius: 12px;\n            border-top-right-radius: 12px;\n        ')
+        title_layout = QHBoxLayout(title_bar)
+        title_layout.setContentsMargins(15, 0, 15, 0)
+        title_label = QLabel('NowacS Development')
+        title_label.setStyleSheet('\n            color: white;\n            font-size: 16px;\n            font-weight: bold;\n            background-color: transparent;\n        ')
+        close_btn = QPushButton('✕')
+        close_btn.setFixedSize(30, 30)
+        close_btn.setStyleSheet('\n            QPushButton {\n                color: white;\n                background-color: transparent;\n                border: none;\n                font-size: 16px;\n                font-weight: bold;\n            }\n            QPushButton:hover {\n                background-color: #ff3366;\n                border-radius: 15px;\n            }\n        ')
+        close_btn.clicked.connect(self.close)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        title_layout.addWidget(close_btn)
+        content_widget = QWidget()
+        content_widget.setStyleSheet('\n            background-color: #0a0a12;\n            border: none;\n            border-bottom-left-radius: 12px;\n            border-bottom-right-radius: 12px;\n        ')
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setAlignment(Qt.AlignCenter)
+        content_layout.setContentsMargins(20, 10, 20, 20)
+        content_layout.setSpacing(15)
+        app_title = QLabel('NowacS')
+        app_title.setStyleSheet('\n            color: #bf5fff;\n            font-size: 26px;\n            font-weight: bold;\n            text-shadow: 0 0 10px rgba(191, 95, 255, 0.6);\n            margin-bottom: 10px;\n            background-color: transparent;\n        ')
+        app_title.setAlignment(Qt.AlignCenter)
+        form_container = QFrame()
+        form_container.setFrameShape(QFrame.StyledPanel)
+        form_container.setStyleSheet('\n            QFrame {\n                background-color: #15151f;\n                border-radius: 18px;\n                border: 1px solid #8a2be2;\n            }\n        ')
+        form_layout = QVBoxLayout(form_container)
+        form_layout.setContentsMargins(20, 20, 20, 20)
+        form_layout.setSpacing(15)
+        form_title = QLabel('Hesap Girişi')
+        form_title.setStyleSheet('\n            color: #da70d6;\n            font-size: 18px;\n            font-weight: bold;\n            background-color: transparent;\n            border: none;\n        ')
+        form_title.setAlignment(Qt.AlignCenter)
+        username_layout = QHBoxLayout()
+        username_layout.setContentsMargins(0, 0, 0, 0)
+        username_layout.setSpacing(0)
+        self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText('Kullanıcı Adı')
+        self.username_input.setStyleSheet('\n            QLineEdit {\n                background-color: #1a1a2e;\n                color: white;\n                border: 1px solid #333355;\n                border-radius: 8px;\n                padding: 10px 15px;\n                font-size: 13px;\n            }\n            QLineEdit:focus {\n                border: 1px solid #bf5fff;\n            }\n        ')
+        self.username_input.setMinimumHeight(36)
+        username_layout.addWidget(self.username_input)
+        password_layout = QHBoxLayout()
+        password_layout.setContentsMargins(0, 0, 0, 0)
+        password_layout.setSpacing(0)
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText('Şifre')
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setStyleSheet('\n            QLineEdit {\n                background-color: #1a1a2e;\n                color: white;\n                border: 1px solid #333355;\n                border-radius: 8px;\n                padding: 10px 15px;\n                font-size: 13px;\n            }\n            QLineEdit:focus {\n                border: 1px solid #bf5fff;\n            }\n        ')
+        self.password_input.setMinimumHeight(36)
+        password_layout.addWidget(self.password_input)
+        remember_layout = QHBoxLayout()
+        remember_layout.setContentsMargins(0, 0, 0, 0)
+        remember_layout.setSpacing(0)
+        self.remember_me = QCheckBox('Beni Hatırla')
+        self.remember_me.setStyleSheet('\n            QCheckBox {\n                color: #9f9fff;\n                font-size: 13px;\n                background-color: transparent;\n            }\n            QCheckBox::indicator {\n                width: 16px;\n                height: 16px;\n                border-radius: 4px;\n                border: 1px solid #8a2be2;\n                background-color: #1a1a2e;\n            }\n            QCheckBox::indicator:checked {\n                background-color: #8a2be2;\n            }\n        ')
+        remember_layout.addWidget(self.remember_me)
+        remember_layout.addStretch()
+        self.login_btn = QPushButton('GİRİŞ YAP')
+        self.login_btn.setCursor(Qt.PointingHandCursor)
+        self.login_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6);\n                color: white;\n                border: none;\n                border-radius: 10px;\n                padding: 10px;\n                font-size: 14px;\n                font-weight: bold;\n                margin-top: 5px;\n                outline: none;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9370db, stop:1 #ee82ee);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #a35cff);\n                outline: none;\n            }\n            QPushButton:focus {\n                outline: none;\n                border: none;\n            }\n        ')
+        self.login_btn.setFocusPolicy(Qt.NoFocus)
+        self.login_btn.setMinimumHeight(40)
+        self.login_btn.clicked.connect(self.authenticate)
+        self.username_input.returnPressed.connect(self.login_btn.click)
+        self.password_input.returnPressed.connect(self.login_btn.click)
+        form_layout.addWidget(form_title)
+        form_layout.addLayout(username_layout)
+        form_layout.addLayout(password_layout)
+        form_layout.addLayout(remember_layout)
+        form_layout.addWidget(self.login_btn)
+        footer = QLabel('v1.0 © 2025 NOWACS')
+        footer.setStyleSheet('\n            color: #666677;\n            font-size: 11px;\n            background-color: transparent;\n        ')
+        footer.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(app_title)
+        content_layout.addWidget(form_container)
+        content_layout.addStretch()
+        content_layout.addWidget(footer)
+        main_layout.addWidget(title_bar)
+        main_layout.addWidget(content_widget)
+        self.setLayout(main_layout)
+        self.load_credentials()
+
+    def get_config_path(self):
+        config_path = Path(os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'nowacs_config.json'))
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        return str(config_path)
+
+    def load_credentials(self):
+        try:
+            config_path = self.get_config_path()
+            print(f'[+] Kimlik bilgilerini yüklemeye çalışıyor: {config_path}')
+            if not os.path.exists(config_path):
+                print(f'[!] Config dosyası bulunamadı: {config_path}')
+            return None
+        except json.JSONDecodeError as e:
+            print(f'[!] Config dosyası geçersiz JSON formatı: {str(e)}')
+        except Exception as e:
+            print(f'[!] Config yükleme hatası: {str(e)}')
+
+    def save_credentials(self, username, password):
+        config = {'username': username, 'password': password}
+        try:
+            config_path = self.get_config_path()
+            Path(os.path.dirname(config_path)).mkdir(parents=True, exist_ok=True)
+            with open(config_path, 'w') as f:
+                json.dump(config, f)
+                    print(f'[+] Kullanıcı bilgileri kaydedildi: {username}')
+        except Exception as e:
+            print(f'[!] Kullanıcı bilgileri kaydedilemedi: {str(e)}')
+            QMessageBox.warning(self, 'Uyarı', f'Bilgiler kaydedilemedi: {str(e)}')
+
+    def connect_to_db(self):
+        try:
+            db_config = API_CONFIG.get('db')
+            self.mydb = mysql.connector.connect(host=db_config.get('host'), user=db_config.get('user'), password=db_config.get('password'), database=db_config.get('database'))
+            return self.mydb.cursor()
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print('Incorrect username or password')
+            QMessageBox.critical(self, 'Error', 'Database connection failed!')
+
+    def authenticate(self, auto_login=False):
+        global current_logged_username  # inserted
+        username = self.username_input.text()
+        password = self.password_input.text()
+        if not username or not password:
+            QMessageBox.warning(self, 'Eksik Bilgi!', 'Kullanıcı adı ve şifre alanları boş bırakılamaz!')
+        return None
+
+class ModernTitleBar(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(40)
+        self.setStyleSheet('\n            background-color: #0a0a12; \n            border-top-left-radius: 12px;\n            border-top-right-radius: 12px;\n        ')
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.app_icon = QLabel()
+        icon_path = ':/icons/app_icon.png'
+        icon_pixmap = QPixmap(icon_path)
+        if not icon_pixmap.isNull():
+            self.app_icon.setPixmap(icon_pixmap.scaled(20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.app_icon.setContentsMargins(15, 0, 10, 0)
+        layout.addWidget(self.app_icon)
+        self.title_label = QLabel('NOWACS')
+        self.title_label.setStyleSheet('\n            color: #E0E0E0; \n            font-size: 16px;\n            font-family: \'Segoe UI\', \'Arial\', sans-serif;\n            font-weight: 500; \n            background-color: transparent;\n        ')
+        layout.addWidget(self.title_label)
+        self.version_label = QLabel('v1.0')
+        self.version_label.setStyleSheet('\n            color: #AAAAAA;\n            font-size: 12px;\n            font-family: \'Segoe UI\', \'Arial\', sans-serif;\n            padding-left: 8px; \n            padding-top: 2px;\n            background-color: transparent;\n        ')
+        layout.addWidget(self.version_label)
+        layout.addStretch(1)
+        self.controls_container = QWidget()
+        self.controls_container.setStyleSheet('background-color: transparent;')
+        controls_layout = QHBoxLayout(self.controls_container)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(0)
+        button_style = '\n            QPushButton {\n                background-color: transparent; \n                border: none;\n                font-family: \'Segoe UI Symbol\', \'Arial\'; \n                font-size: 14px;\n                color: #BBBBBB; \n                padding: 0;\n                text-align: center;\n                min-width: 46px; \n                min-height: 40px; \n                border-radius: 5px;\n            }\n            QPushButton:hover {\n                background-color: #333333; \n                color: #FFFFFF;\n            }\n            QPushButton:pressed {\n                background-color: #222222; \n                color: #FFFFFF;\n            }\n        '
+        self.minimize_button = QPushButton('⎯')
+        self.minimize_button.setStyleSheet(button_style)
+        self.maximize_button = QPushButton('☐')
+        self.maximize_button.setStyleSheet(button_style)
+        self.close_button = QPushButton('✕')
+        close_button_style = button_style + '\n            QPushButton#closeButton:hover {\n                background-color: #E81123; \n                color: white;\n                border-radius: 5px;\n            }\n            QPushButton#closeButton:pressed {\n                 background-color: #B70F1A; \n                 color: white;\n            }\n        '
+        self.close_button.setObjectName('closeButton')
+        self.close_button.setStyleSheet(close_button_style)
+        controls_layout.addWidget(self.minimize_button)
+        controls_layout.addWidget(self.maximize_button)
+        controls_layout.addWidget(self.close_button)
+        layout.addWidget(self.controls_container)
+        self.minimize_button.clicked.connect(self.parent.showMinimized)
+        self.maximize_button.clicked.connect(self.toggle_maximize_state)
+        self.close_button.clicked.connect(self.parent.close)
+        self.is_maximized = False
+        self.mouse_drag_position = None
+
+    def toggle_maximize_state(self):
+        if self.is_maximized:
+            self.parent.showNormal()
+            self.maximize_button.setText('☐')
+            self.is_maximized = False
+        return None
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.mouse_drag_position = event.globalPos() - self.parent.frameGeometry().topLeft()
+            event.accept()
+        return None
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self.mouse_drag_position is not None and (not self.is_maximized):
+            self.parent.move(event.globalPos() - self.mouse_drag_position)
+            event.accept()
+            return
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.mouse_drag_position = None
+            event.accept()
+        return None
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton and (not self.minimize_button.underMouse()) and (not self.maximize_button.underMouse()) and (not self.close_button.underMouse()):
+            self.toggle_maximize_state()
+            event.accept()
+            return
+
+class MainApplication(QMainWindow):
+    def __init__(self, username, hesap, kayit_tarihi, bitis_tarihi):
+        super().__init__()
+        self.username = username
+        self.hesap = hesap
+        self.init_membership_controller()
+        self.network_manager = QNetworkAccessManager()
+        self.kayit_tarihi = kayit_tarihi
+        self.bitis_tarihi = bitis_tarihi
+        self.setWindowTitle('NOWACS')
+        ico_path = 'ico2.ico'
+        self.setWindowIcon(QIcon(ico_path)) if os.path.exists(ico_path) else None
+        self.download_thread = None
+        self.extract_thread = None
+        self.games_dict = {}
+        self.yukle_ve_ayarla_ikon()
+        self.setGeometry(100, 100, 1200, 800)
+        self.setStyleSheet('\n            QMainWindow {\n                background-color: #0a0a12;\n                border-radius: 12px;\n                border: 1px solid #8a2be2;\n            }\n        ')
+        self.apply_styles()
+        self.config_file = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'config.json')
+        self.steam_path = self.load_steam_path()
+        print(f'[DEBUG] Steam Path: {self.steam_path}')
+        self.init_ui()
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.title_bar = ModernTitleBar(self)
+        self.setMenuWidget(self.title_bar)
+        self.api_data = get_api_data()
+        self.stack_animation = StackedWidgetAnimation(self.content_stack)
+        if not self.steam_path or not self.validate_steam_path(self.steam_path):
+            self.force_steam_path_selection()
+        if self.api_data:
+            self.WEBHOOK_URL = self.api_data.get('webhook_url')
+            self.WEBHOOK_URL_gun = self.api_data.get('webhook_url_gun')
+            self.WEBHOOK_URL_game = self.api_data.get('webhook_url_game')
+            self.DISCORD_INVITE_LINK = self.api_data.get('discord_invite_link')
+            self.README_TEXT = self.api_data.get('readme_text')
+            self.GAME_HEADERS = self.api_data.get('game_ids', [])
+            self.REMOTE_SITE_URL = self.api_data.get('dowloand_api_url')
+        return None
+
+    def init_membership_controller(self):
+        """Ana uygulamaya üyelik denetleyicisini ekler"""  # inserted
+        self.membership_controller = MembershipController(self)
+
+    def cleanup_membership_controller(self):
+        """Uygulama kapatılırken kontrolcüyü temizler"""  # inserted
+        if hasattr(self, 'membership_controller'):
+            self.membership_controller.stop_membership_check()
+        return None
+
+    def force_steam_path_selection(self):
+        pass
+        path = QFileDialog.getExistingDirectory(self, 'Steam Dizinini Seçiniz', 'C:\\', QFileDialog.ShowDirsOnly)
+        if path and self.validate_steam_path(path):
+            self.steam_path = path
+            self.save_steam_path(path)
+        return None
+
+    def toggle_maximize(self):
+        if self.isMaximized():
+            self.showNormal()
+            self.title_bar.maximize_button.setText('□')
+        return None
+
+    def yukle_ve_ayarla_ikon(self):
+        api_url = API_ENDPOINT
+        json_anahtar_adi = 'png'
+        try:
+            response = requests.get(api_url)
+            response.raise_for_status()
+            content = response.content
+            content = content[3:] if content.startswith(b'\xef\xbb\xbf') else content
+            json_data = json.loads(content)
+            if json_anahtar_adi in json_data:
+                png_data_base64 = json_data[json_anahtar_adi]
+                image_data_bytes = base64.b64decode(png_data_base64)
+                pixmap = QPixmap()
+                pixmap.loadFromData(image_data_bytes, 'PNG')
+                if not pixmap.isNull():
+                    icon = QIcon(pixmap)
+                    self.setWindowIcon(icon)
+                return None
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f'API\'den JSON çekme hatası: {e}')
+        except json.JSONDecodeError as e:
+            print(f'JSON ayrıştırma hatası: {e}')
+            return
+        except base64.binascii.Error as e:
+            print(f'Base64 decode hatası: {e}')
+            return
+        except Exception as e:
+            print(f'Beklenmeyen bir hata oluştu: {e}')
+            return None
+
+    def init_ui(self):
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        sidebar = QWidget()
+        sidebar.setFixedWidth(280)
+        sidebar.setStyleSheet('background-color: #0f0f1a;')
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 10, 0, 20)
+        sidebar_layout.setSpacing(5)
+        logo_container = QWidget()
+        logo_container.setFixedHeight(120)
+        logo_layout = QVBoxLayout(logo_container)
+        logo_layout.setAlignment(Qt.AlignCenter)
+        logo_label = QLabel('NOWACS')
+        logo_label.setStyleSheet('\n            font-size: 28px;\n            font-weight: bold;\n            color: #bf5fff;\n            letter-spacing: 2px;\n            text-shadow: 0 0 10px rgba(187, 95, 255, 0.7);\n            background: transparent;\n        ')
+        logo_label.setAlignment(Qt.AlignCenter)
+        user_label = QLabel(f'{self.username}')
+        user_label.setStyleSheet('\n            font-size: 14px;\n            color: #da70d6;\n            margin-top: 5px;\n            background: transparent;\n        ')
+        user_label.setAlignment(Qt.AlignCenter)
+        logo_layout.addWidget(logo_label)
+        logo_layout.addWidget(user_label)
+        sidebar_layout.addWidget(logo_container)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setStyleSheet('background-color: #333355; max-height: 1px; margin: 0 20px;')
+        sidebar_layout.addWidget(separator)
+        account_status = QFrame()
+        account_status.setObjectName('sidebarAccountStatus')
+        account_status.setStyleSheet('\n            QFrame#sidebarAccountStatus {\n                background-color: #15151f;\n                border-radius: 8px;\n                margin: 5px 10px;\n                border: 2px solid #8a2be2; \n            }\n        ')
+        account_layout = QVBoxLayout(account_status)
+        account_layout.setContentsMargins(12, 12, 12, 12)
+        account_layout.setSpacing(8)
+        account_header = QHBoxLayout()
+        account_header.setSpacing(5)
+        header_icon = QLabel()
+        header_icon.setPixmap(qta.icon('fa5s.id-card', color='#bf5fff').pixmap(QSize(12, 12)))
+        header_icon.setStyleSheet('background: transparent;')
+        header_text = QLabel('Hesap Durumu')
+        header_text.setStyleSheet('color: #bf5fff; font-size: 13px; font-weight: bold; background: transparent;')
+        account_header.addWidget(header_icon)
+        account_header.addWidget(header_text)
+        account_header.addStretch()
+        account_layout.addLayout(account_header)
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet('border-top: 1px solid #bf5fff; margin-top: 5px; margin-bottom: 10px; background: transparent;')
+        account_layout.addWidget(line)
+        if self.hesap and self.hesap.lower() == 'sinirsiz':
+            unlimited_layout = QHBoxLayout()
+            unlimited_layout.setContentsMargins(0, 5, 0, 5)
+            unlimited_icon = QLabel()
+            unlimited_icon.setPixmap(qta.icon('fa5s.infinity', color='#da70d6').pixmap(QSize(16, 16)))
+            unlimited_icon.setStyleSheet('background: transparent;')
+            unlimited_text = QLabel('Sınırsız Üyelik')
+            unlimited_text.setStyleSheet('color: #da70d6; font-size: 12px; font-weight: bold; background: transparent;')
+            unlimited_layout.addWidget(unlimited_icon)
+            unlimited_layout.addWidget(unlimited_text)
+            account_layout.addLayout(unlimited_layout)
+        sidebar_layout.addWidget(account_status)
+        nav_container = QWidget()
+        nav_layout = QVBoxLayout(nav_container)
+        nav_layout.setContentsMargins(10, 15, 10, 10)
+        nav_layout.setSpacing(8)
+        menus = [('ana', '🏠', 'Ana Sayfa', '#8a2be2', self.show_home), ('oyunlar', '🎮', 'Oyunlar', '#8a2be2', self.show_games), ('oyun_guncelleme', '🛠️', 'Oyun Güncelleme', '#8a2be2', self.show_game_update)]
+        if self.hesap and (self.hesap.lower() == 'premium' or self.hesap.lower() == 'sinirsiz'):
+            menus.append(('baslatici', '🚀', 'Başlatıcılar', '#8a2be2', self.show_launchers))
+            menus.append(('dlc', '🧩', 'DLC Araçları', '#8a2be2', self.show_dlc_tools))
+        menus.append(('ayarlar', '⚙', 'Ayarlar', '#8a2be2', self.show_settings))
+        self.nav_buttons = {}
+        for id_name, icon, text, color, callback in menus:
+            hover_color = self.adjust_color_brightness(color, (-30)) if hasattr(self, 'adjust_color_brightness') else color
+            btn = QPushButton(f'{icon}  {text}')
+            btn.setObjectName(id_name)
+            btn.setStyleSheet('\n                QPushButton {\n                    text-align: left;\n                    padding: 15px 20px;\n                    font-size: 15px;\n                    font-weight: medium;\n                    color: #FFFFFF;\n                    background-color: transparent;\n                    border-radius: 8px;\n                    border: none;\n                }\n                QPushButton:hover {\n                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                    stop:0 #9370db77, stop:1 #da70d677);\n                    background-color: rgba(147, 112, 219, 0.3);\n                    color: #FFFFFF;\n                }\n                QPushButton[active=\"true\"] {\n                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                    stop:0 #8a2be2, stop:1 #da70d6);\n                    color: #FFFFFF;\n                }\n            ')
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(callback)
+            btn.setProperty('active', False)
+            nav_layout.addWidget(btn)
+            self.nav_buttons[id_name] = btn
+        nav_layout.addStretch()
+        sidebar_layout.addWidget(nav_container)
+        sidebar_layout.addStretch()
+        main_layout.addWidget(sidebar)
+        content_container = QWidget()
+        content_container.setStyleSheet('background-color: #0a0a12;')
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_stack = QStackedWidget()
+        content_layout.addWidget(self.content_stack)
+        main_layout.addWidget(content_container)
+        self.init_home_page()
+        self.init_games_page()
+        self.init_game_update_page()
+        if self.hesap and (self.hesap.lower() == 'premium' or self.hesap.lower() == 'sinirsiz'):
+            self.init_launchers_page()
+            self.init_dlc_tools_page()
+        self.init_settings_page()
+        self.reset_nav_buttons()
+        self.nav_buttons['ana'].setProperty('active', True)
+        self.nav_buttons['ana'].style().unpolish(self.nav_buttons['ana'])
+        self.nav_buttons['ana'].style().polish(self.nav_buttons['ana'])
+        self.nav_buttons['ana'].update()
+        self.content_stack.setCurrentIndex(0)
+
+    def adjust_color_brightness(self, hex_color, amount):
+        hex_color = hex_color.lstrip('#')
+        rgb = tuple((int(hex_color[i:i + 2], 16) for i in [0, 2, 4]))
+        new_rgb = tuple((max(0, min(255, c + amount)) for c in rgb))
+        return f'#{new_rgb[0]:02x}{new_rgb[1]:02x}{new_rgb[2]:02x}'
+
+    def show_home(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_games(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def reset_nav_buttons(self):
+        for button in self.nav_buttons.values():
+            button.setProperty('active', False)
+            button.style().unpolish(button)
+            button.style().polish(button)
+            button.update()
+
+    def show_launchers(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_dlc_tools(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_settings(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def apply_styles(self):
+        self.setStyleSheet('\n            QMainWindow {\n                background-color: #0a0a0a;\n                border: none;\n                border-radius: 12px;\n            }\n            QLabel {\n                color: #FFFFFF;\n            }\n            QProgressBar {\n                border: none;\n                border-radius: 6px;\n                text-align: center;\n                background-color: #1a1a1a;\n                height: 8px;\n            }\n            QProgressBar::chunk {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                         stop:0 #8A2BE2, stop:1 #DA70D6);\n                border-radius: 6px;\n            }\n            QScrollBar:vertical {\n                border: none;\n                background-color: #121212;\n                width: 8px;\n                margin: 0px;\n                border-radius: 4px;\n            }\n            QScrollBar::handle:vertical {\n                background-color: #8A2BE2;\n                border-radius: 4px;\n                min-height: 30px;\n            }\n            QScrollBar::handle:vertical:hover {\n                background-color: #9370DB;\n            }\n            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {\n                height: 0px;\n            }\n            QScrollBar:horizontal {\n                border: none;\n                background-color: #121212;\n                height: 8px;\n                margin: 0px;\n            }\n            QScrollBar::handle:horizontal {\n                background-color: #8A2BE2;\n                border-radius: 4px;\n                min-width: 30px;\n            }\n            QScrollBar::handle:horizontal:hover {\n                background-color: #9370DB;\n            }\n            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {\n                width: 0px;\n            }\n            QPushButton {\n                border-radius: 6px;\n                padding: 8px 16px;\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                         stop:0 #8A2BE2, stop:1 #DA70D6);\n                color: white;\n                font-weight: bold;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                         stop:0 #9370DB, stop:1 #EE82EE);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                         stop:0 #7B68EE, stop:1 #C71585);\n            }\n            QLineEdit, QComboBox {\n                padding: 8px 12px;\n                border-radius: 5px;\n                background-color: #1a1a1a;\n                color: #EEEEEE;\n                border: 1px solid #333333;\n            }\n            QLineEdit:focus, QComboBox:focus {\n                border: 1px solid #8A2BE2;\n            }\n            QComboBox::drop-down {\n                border: none;\n                width: 25px;\n            }\n            QFrame {\n                border-radius: 14px;\n            }\n            QFrame#infoCard, QFrame#sidebarAccountStatus {\n                border-radius: 14px;\n            }\n            QWidget#sidebarNav QPushButton {\n                border-radius: 10px;\n            }\n            QMessageBox {\n                border-radius: 12px;\n                background-color: #ffffff;\n                color: #000000;\n            }\n            QMessageBox QLabel {\n                color: #000000;\n                font-size: 14px;\n            }\n            QMessageBox QPushButton {\n                background-color: #8a2be2;\n                color: white;\n                padding: 8px 16px;\n                border: none;\n                border-radius: 5px;\n                min-width: 80px;\n            }\n            QMessageBox QPushButton:hover {\n                background-color: #9370db;\n            }\n            QDialog {\n                border-radius: 12px;\n            }\n        ')
+
+    def init_home_page(self):
+        page = QWidget()
+        page.setStyleSheet('background-color: #0a0a12;')
+        layout = QVBoxLayout(page)
+        layout.setAlignment(Qt.AlignTop)
+        layout.setSpacing(25)
+        layout.setContentsMargins(35, 35, 35, 35)
+        header_container = QWidget()
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        title_icon = QLabel()
+        title_icon.setPixmap(qta.icon('fa5s.user-circle', color='#bf5fff').pixmap(QSize(32, 32)))
+        title_icon.setStyleSheet('margin-right: 10px; background: transparent;')
+        title = QLabel(f"Hoş Geldiniz, {(self.username if self.username else 'Misafir')}")
+        title.setStyleSheet('\n            font-size: 28px; \n            color: #bf5fff;\n            font-weight: bold;\n            text-shadow: 0 0 8px rgba(186, 85, 255, 0.6);\n            background: transparent;\n        ')
+        date_label = QLabel(datetime.now().strftime('%d %B %Y, %A'))
+        date_label.setStyleSheet('\n            font-size: 14px; \n            color: #da70d6;\n            background: transparent;\n        ')
+        date_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        header_layout.addWidget(title_icon)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(date_label)
+        layout.addWidget(header_container)
+        cards_container = QWidget()
+        cards_layout = QHBoxLayout(cards_container)
+        cards_layout.setContentsMargins(0, 5, 0, 5)
+        cards_layout.setSpacing(30)
+        account_card = QFrame()
+        account_card.setObjectName('infoCard')
+        account_card.setStyleSheet('\n            QFrame#infoCard {\n                background-color: #15151f;\n                border-radius: 10px;\n                border: 2px solid #8a2be2;\n                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);\n            }\n        ')
+        account_layout = QVBoxLayout(account_card)
+        account_layout.setContentsMargins(20, 20, 20, 20)
+        account_layout.setSpacing(12)
+        account_header_layout = QHBoxLayout()
+        account_header_icon = QLabel()
+        account_header_icon.setPixmap(qta.icon('fa5s.id-card', color='#bf5fff').pixmap(QSize(20, 20)))
+        account_header_icon.setStyleSheet('background: transparent;')
+        account_header = QLabel('Hesap Durumu')
+        account_header.setStyleSheet('\n            font-size: 18px; \n            color: #bf5fff;\n            font-weight: bold;\n            margin-left: 8px;\n            background: transparent;\n        ')
+        account_header_layout.addWidget(account_header_icon)
+        account_header_layout.addWidget(account_header)
+        account_header_layout.addStretch()
+        account_layout.addLayout(account_header_layout)
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        line1.setFrameShadow(QFrame.Sunken)
+        line1.setStyleSheet('border-top: 1px solid #bf5fff; margin-top: 5px; margin-bottom: 10px; background: transparent;')
+        account_layout.addWidget(line1)
+        if self.hesap and self.hesap.lower() == 'sinirsiz':
+            unlimited_container = QWidget()
+            unlimited_container.setStyleSheet('background: transparent;')
+            unlimited_layout = QHBoxLayout(unlimited_container)
+            unlimited_layout.setAlignment(Qt.AlignCenter)
+            unlimited_layout.setContentsMargins(0, 15, 0, 15)
+            unlimited_symbol = QLabel()
+            unlimited_symbol.setPixmap(qta.icon('fa5s.infinity', color='#da70d6').pixmap(QSize(48, 48)))
+            unlimited_symbol.setAlignment(Qt.AlignCenter)
+            unlimited_symbol.setStyleSheet('background: transparent;')
+            unlimited_text = QLabel('Sınırsız Üyelik Aktif')
+            unlimited_text.setStyleSheet('\n                font-size: 18px;\n                color: #da70d6;\n                font-weight: bold;\n                margin-left: 15px;\n                text-shadow: 0 0 5px rgba(218, 112, 214, 0.5);\n                background: transparent;\n            ')
+            unlimited_text.setAlignment(Qt.AlignCenter)
+            unlimited_layout.addWidget(unlimited_symbol)
+            unlimited_layout.addWidget(unlimited_text)
+            unlimited_layout.addStretch()
+            account_layout.addWidget(unlimited_container)
+            account_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        features_card = QFrame()
+        features_card.setObjectName('infoCard')
+        features_card.setStyleSheet('\n            QFrame#infoCard {\n                background-color: #15151f;\n                border-radius: 10px;\n                border: 2px solid #a35cff;\n                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);\n            }\n        ')
+        features_layout = QVBoxLayout(features_card)
+        features_layout.setContentsMargins(20, 20, 20, 20)
+        features_layout.setSpacing(12)
+        features_header_layout = QHBoxLayout()
+        features_header_icon = QLabel()
+        features_header_icon.setPixmap(qta.icon('fa5s.bolt', color='#a35cff').pixmap(QSize(20, 20)))
+        features_header_icon.setStyleSheet('background: transparent;')
+        features_header = QLabel('Hızlı Erişim')
+        features_header.setStyleSheet('\n            font-size: 18px;\n            color: #a35cff;\n            font-weight: bold;\n            margin-left: 8px;\n            background: transparent;\n        ')
+        features_header_layout.addWidget(features_header_icon)
+        features_header_layout.addWidget(features_header)
+        features_header_layout.addStretch()
+        features_layout.addLayout(features_header_layout)
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setFrameShadow(QFrame.Sunken)
+        line2.setStyleSheet('border-top: 1px solid #a35cff; margin-top: 5px; margin-bottom: 10px; background: transparent;')
+        features_layout.addWidget(line2)
+        buttons_container = QWidget()
+        buttons_container.setStyleSheet('background: transparent;')
+        buttons_layout = QGridLayout(buttons_container)
+        buttons_layout.setContentsMargins(0, 5, 0, 0)
+        buttons_layout.setHorizontalSpacing(15)
+        buttons_layout.setVerticalSpacing(10)
+        base_color = '#8a2be2'
+        feature_buttons_data = [('Oyunlar', 'fa5s.gamepad', base_color, self.show_games), ('Ayarlar', 'fa5s.cog', base_color, self.show_settings)]
+        temp_buttons = []
+        if self.hesap and (self.hesap.lower() == 'premium' or self.hesap.lower() == 'sinirsiz'):
+            temp_buttons.append(('Başlatıcılar', 'fa5s.rocket', base_color, self.show_launchers))
+            temp_buttons.append(('DLC Araçları', 'fa5s.puzzle-piece', base_color, self.show_dlc_tools))
+        feature_buttons_data[1:1] = temp_buttons
+        for i, (text, icon_name, color, callback) in enumerate(feature_buttons_data):
+            row, col = divmod(i, 2)
+            btn = QPushButton(text)
+            btn.setIcon(qta.icon(icon_name, color='white'))
+            btn.setIconSize(QSize(16, 16))
+            hover_color = self.adjust_color_brightness(color, (-30))
+            gradient_direction = 'x1:0, y1:0, x2:1, y2:0' if col == 0 else 'x1:1, y1:0, x2:0, y2:0'
+            btn.setStyleSheet(f'\n                QPushButton {\n                    background: qlineargradient({gradient_direction},\n                                    stop:0 {color}, stop:1 {self.adjust_color_brightness(color, 40)});\n                    color: white;\n                    border-radius: 6px; \n                    padding: 10px 12px; \n                    font-size: 14px; \n                    font-weight: bold;\n                    text-align: left; \n                    border: none;\n                }\n                QPushButton:hover {\n                    background: qlineargradient({gradient_direction},\n                                    stop:0 {self.adjust_color_brightness(color, 20)}, stop:1 {self.adjust_color_brightness(color, 60)});\n                }\n                QPushButton:pressed {\n                    background: qlineargradient({gradient_direction},\n                                    stop:0 {self.adjust_color_brightness(color, (-20))}, stop:1 {self.adjust_color_brightness(color, 20)}); \n                }\n            ')
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(callback)
+            buttons_layout.addWidget(btn, row, col)
+        features_layout.addWidget(buttons_container)
+        features_layout.addStretch()
+        cards_layout.addWidget(account_card, 1)
+        cards_layout.addWidget(features_card, 1)
+        layout.addWidget(cards_container)
+        news_card = QFrame()
+        news_card.setObjectName('infoCard')
+        news_card.setStyleSheet('\n            QFrame#infoCard {\n                background-color: #15151f;\n                border-radius: 10px;\n                border: 2px solid #da70d6; \n            }\n        ')
+        news_layout = QVBoxLayout(news_card)
+        news_layout.setContentsMargins(20, 20, 20, 20)
+        news_layout.setSpacing(12)
+        news_header_layout = QHBoxLayout()
+        news_header_icon = QLabel()
+        news_header_icon.setPixmap(qta.icon('fa5s.bullhorn', color='#da70d6').pixmap(QSize(20, 20)))
+        news_header_icon.setStyleSheet('background: transparent;')
+        news_header = QLabel('Güncelleme Notları')
+        news_header.setStyleSheet('\n            font-size: 18px;\n            color: #da70d6;\n            font-weight: bold;\n            margin-left: 8px;\n            background: transparent;\n        ')
+        news_header_layout.addWidget(news_header_icon)
+        news_header_layout.addWidget(news_header)
+        news_header_layout.addStretch()
+        news_layout.addLayout(news_header_layout)
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.HLine)
+        line3.setFrameShadow(QFrame.Sunken)
+        line3.setStyleSheet('border-top: 1px solid #da70d6; margin-top: 5px; margin-bottom: 10px; background: transparent;')
+        news_layout.addWidget(line3)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet('\n            QScrollArea {\n                border: none;\n                background-color: transparent;\n            }\n        ')
+        content_container = QWidget()
+        content_container.setStyleSheet('background-color: transparent;')
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(15)
+        contents = ['🚀 NowacS 1.0 Güncellemesi Yayında! ', '🎨 Uygulamanın arayüzü yenilendi! Renk teması değiştirildi. Yeni tasarım, göze daha hitap eden bir görünüm sunuyor.', '🎮 Oyun Güncelleme menüsü eklendi! Artık oyunlarınızı ekstra uğraş gerektirmeden güncelleyebilirsiniz.']
+        for content in contents:
+            content_label = QLabel(content)
+            content_label.setStyleSheet('\n                font-size: 14px; \n                color: #FFFFFF; \n                background: transparent;\n                padding: 8px;\n                border-left: 2px solid #8a2be2;\n                margin-left: 5px;\n            ')
+            content_label.setWordWrap(True)
+            content_layout.addWidget(content_label)
+            if content!= contents[(-1)]:
+                pass  # postinserted
+            else:  # inserted
+                separator = QFrame()
+                separator.setFrameShape(QFrame.HLine)
+                separator.setStyleSheet('background-color: #333355; max-height: 1px; margin: 0 10px;')
+                content_layout.addWidget(separator)
+        content_layout.addStretch()
+        scroll_area.setWidget(content_container)
+        news_layout.addWidget(scroll_area)
+        news_layout.addStretch()
+        layout.addWidget(news_card)
+        layout.addStretch()
+        shortcut_button_container = QWidget()
+        shortcut_button_layout = QHBoxLayout(shortcut_button_container)
+        shortcut_button_layout.setContentsMargins(0, 0, 0, 0)
+        shortcut_button_layout.addStretch()
+        create_shortcut_btn = QPushButton('Masaüstüne Kısayol Oluştur')
+        create_shortcut_btn.setIcon(qta.icon('fa5s.external-link-alt', color='white'))
+        create_shortcut_btn.setIconSize(QSize(16, 16))
+        create_shortcut_btn.setCursor(Qt.PointingHandCursor)
+        create_shortcut_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                            stop:0 #8a2be2, stop:1 #a35cff);\n                color: white;\n                border-radius: 6px; \n                padding: 8px 16px; \n                font-size: 13px; \n                font-weight: bold;\n                border: none;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                            stop:0 #9945e8, stop:1 #b57aff);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                            stop:0 #7b1dd0, stop:1 #9240f0); \n            }\n        ')
+        create_shortcut_btn.clicked.connect(self.create_desktop_shortcut)
+        shortcut_button_layout.addWidget(create_shortcut_btn)
+        layout.addWidget(shortcut_button_container)
+        if hasattr(self, 'content_stack'):
+            existing_widget = self.findChild(QWidget, 'homePageWidget')
+            if existing_widget:
+                self.content_stack.removeWidget(existing_widget)
+                existing_widget.deleteLater()
+            page.setObjectName('homePageWidget')
+            self.content_stack.addWidget(page)
+        return None
+
+    def adjust_color_brightness(self, hex_color, amount):
+        hex_color = hex_color.lstrip('#')
+        rgb = tuple((int(hex_color[i:i + 2], 16) for i in [0, 2, 4]))
+        new_rgb = tuple((max(0, min(255, c + amount)) for c in rgb))
+        return '#%02x%02x%02x' % new_rgb
+
+    def parse_date(self, date_str):
+        formats = ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y']
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+        else:  # inserted
+            raise ValueError(f'Geçersiz tarih formatı: {date_str}')
+        except ValueError:
+            pass
+
+    def send_expiry_notification_webhook(self):
+        if not hasattr(self, 'WEBHOOK_URL_gun'):
+            self.WEBHOOK_URL_gun = API_CONFIG.get('webhook_url_gun')
+            if not self.WEBHOOK_URL_gun:
+                pass  # postinserted
+        return None
+
+    def connect_to_db(self):
+        try:
+            db_config = API_CONFIG.get('db')
+            self.mydb = mysql.connector.connect(host=db_config.get('host'), user=db_config.get('user'), password=db_config.get('password'), database=db_config.get('database'))
+            return self.mydb.cursor()
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                print('Incorrect username or password')
+            QMessageBox.critical(self, 'Error', 'Database connection failed!')
+
+    def init_games_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(30, 40, 30, 40)
+        layout.setSpacing(20)
+        page.setStyleSheet('background-color: #0a0a12;')
+        title_label = QLabel('OYUN YÖNETİMİ')
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet('\n            QLabel {\n                color: #bf5fff;\n                font-size: 24px;\n                font-weight: 700;\n                margin-bottom: 30px;\n                text-shadow: 0 0 8px rgba(191, 95, 255, 0.6);\n            }\n        ')
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet('\n            QLabel {\n                padding: 16px;\n                border-radius: 8px;\n                margin: 0 30px 15px 30px;\n                font-weight: 500;\n                opacity: 0;\n                transition: opacity 0.3s ease;\n            }\n            QLabel[type=\"error\"] {\n                background-color: #2a1529;\n                color: #ff5f87;\n                border: 1px solid #ff2d55;\n            }\n            QLabel[type=\"success\"] {\n                background-color: #0e4d23;\n                color: #4eff91;\n                border: 1px solid #00cc44;\n            }\n            QLabel[type=\"info\"] {\n                background-color: #2a2045;\n                color: #a35cff;\n                border: 1px solid #8a2be2;\n            }\n        ')
+        self.error_label.setWordWrap(True)
+        self.error_label.hide()
+        self.error_opacity = QGraphicsOpacityEffect(self.error_label)
+        self.error_label.setGraphicsEffect(self.error_opacity)
+        self.appid_input = QLineEdit()
+        self.appid_input.setPlaceholderText('Steam AppID Girin...')
+        self.appid_input.setStyleSheet('\n            QLineEdit {\n                padding: 12px;\n                font-size: 14px;\n                border: 2px solid #8a2be2;\n                border-radius: 8px;\n                margin: 0 30px 20px 30px;\n                background-color: #15151f;\n                color: #ffffff;\n            }\n            QLineEdit:focus {\n                border-color: #da70d6;\n                background-color: #1a1a2e;\n            }\n        ')
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(30, 0, 30, 0)
+        button_layout.setSpacing(20)
+        download_btn = QPushButton('İNDİRMEYİ BAŞLAT')
+        download_btn.setCursor(Qt.PointingHandCursor)
+        download_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6);\n                color: white;\n                border: none;\n                padding: 14px 28px;\n                border-radius: 8px;\n                font-size: 15px;\n                font-weight: 600;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9370db, stop:1 #ee82ee);\n            }\n        ')
+        download_btn.clicked.connect(self.start_download)
+        delete_btn = QPushButton('OYUNU SİL')
+        delete_btn.setCursor(Qt.PointingHandCursor)
+        delete_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #ff5f87, stop:1 #ff3366);\n                color: white;\n                border: none;\n                padding: 14px 28px;\n                border-radius: 8px;\n                font-size: 15px;\n                font-weight: 600;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #ff3366, stop:1 #ff5f87);\n            }\n        ')
+        delete_btn.clicked.connect(self.delete_game)
+        button_layout.addWidget(download_btn)
+        button_layout.addWidget(delete_btn)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setAlignment(Qt.AlignCenter)
+        self.progress_bar.setStyleSheet('\n            QProgressBar {\n                background: #15151f; \n                border: 2px solid #8a2be2; \n                border-radius: 8px;\n                height: 22px;\n                margin: 10px 40px;\n                color: white;  \n                font-weight: bold;\n            }\n            QProgressBar::chunk {\n                background: qlineargradient(\n                    spread:pad, x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6\n                );  \n                border-radius: 6px;\n            }\n        ')
+        self.progress_bar.hide()
+        layout.addWidget(title_label)
+        layout.addWidget(self.error_label)
+        layout.addWidget(self.appid_input)
+        layout.addWidget(button_container)
+        layout.addWidget(self.progress_bar)
+        layout.addStretch(1)
+        self.content_stack.addWidget(page)
+
+    def delete_game(self):
+        appid = self.appid_input.text()
+        if not appid.isdigit():
+            self.show_message('Geçersiz AppID formatı!', 'error')
+        return None
+
+    def hide_message(self):
+        self._anim = QPropertyAnimation(self.error_opacity, b'opacity')
+        self._anim.setDuration(200)
+        self._anim.setStartValue(1)
+        self._anim.setEndValue(0)
+        self._anim.finished.connect(self.error_label.hide)
+        self._anim.start()
+
+    def show_message(self, message, msg_type='error'):
+        self._anim.stop() if hasattr(self, '_anim') else None
+        self.error_label.setProperty('type', msg_type)
+        self.error_label.style().polish(self.error_label)
+        self.error_label.setText(message)
+        self.error_label.show()
+        self._anim = QPropertyAnimation(self.error_opacity, b'opacity')
+        self._anim.setDuration(300)
+        self._anim.setStartValue(0)
+        self._anim.setEndValue(1)
+        self._anim.start()
+        if msg_type == 'success':
+            QTimer.singleShot(5000, self.hide_message)
+        return None
+
+    def init_launchers_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        page.setStyleSheet('background-color: #0a0a12;')
+        title_label = QLabel('OYUN SEÇİMİ')
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet('\n            QLabel {\n                color: #bf5fff;\n                font-size: 24px;\n                font-weight: 700;\n                margin-bottom: 30px;\n                text-shadow: 0 0 8px rgba(191, 95, 255, 0.6);\n            }\n        ')
+        info_label = QLabel('Oyun başlatıcılarını indirip istediğiniz klasöre çıkarabilirsiniz.')
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_label.setStyleSheet('\n            QLabel { color: #9370db; font-size: 14px; margin-bottom: 20px; }\n        ')
+        self.game_combo = QComboBox()
+        self.game_combo.addItem('Lütfen bir oyun seçin')
+        self.game_combo.model().item(0).setEnabled(False)
+        self.game_combo.model().item(0).setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.game_combo.setStyleSheet('\n            QComboBox {\n                padding: 12px;\n                font-size: 15px;\n                border: 2px solid #8a2be2;\n                border-radius: 10px;\n                margin: 10px 40px;\n                background-color: #15151f;\n                color: white;\n            }\n            QComboBox QAbstractItemView { \n                border: 2px solid #8a2be2;\n                background: #1a1a2e;\n                selection-background-color: #8a2be2;\n                selection-color: white;\n                color: white;\n                padding: 5px;\n            }\n            QComboBox::drop-down { \n                 border: none;\n            }\n            QComboBox::down-arrow {\n                 image: url(down_arrow.png); \n                 width: 15px;\n                 height: 15px;\n                 padding-right: 15px;\n            }\n            QComboBox:!enabled { color: #B0BEC5; }\n        ')
+        url = QUrl('http://45.147.46.22/api/games/games.php')
+        request = QNetworkRequest(url)
+        self = self.network_manager.get(request)
+        self.finished.connect(lambda: self.php_veri_alindi(reply))
+        self.download_btn = QPushButton('BAŞLATICI İNDİR')
+        self.download_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                stop:0 #8a2be2, stop:1 #da70d6);\n                color: white;\n                border: none;\n                padding: 16px 30px;\n                border-radius: 10px;\n                font-size: 16px;\n                font-weight: bold;\n                letter-spacing: 1px;\n                text-transform: uppercase;\n                margin: 10px 40px;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                stop:0 #9370db, stop:1 #ee82ee);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                stop:0 #8a2be2, stop:1 #a35cff);\n            } \n            QPushButton:disabled {\n                background: #333342;\n                color: #666677;\n            } \n        ')
+        self.download_btn.clicked.connect(self.download_launcher)
+        self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.launcher_progress = QProgressBar()
+        self.launcher_progress.setStyleSheet('\n            QProgressBar {\n                border: 2px solid #8a2be2;\n                border-radius: 10px;\n                height: 24px;\n                margin: 10px 40px;\n                color: white;\n                font-weight: bold;\n                background: #15151f;\n                text-align: center;\n            }\n            QProgressBar::chunk {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                                stop:0 #8a2be2, stop:1 #da70d6);\n                border-radius: 8px;\n                margin: 1px;\n            }\n        ')
+        self.launcher_progress.hide()
+        self.launcher_status = QLabel('')
+        self.launcher_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.launcher_status.setStyleSheet('\n            QLabel {\n                color: #FFFFFF;\n                font-size: 14px;\n                margin: 5px 40px;\n                padding: 10px;\n                border-radius: 8px;\n                background-color: #1a1a2e;\n            }\n        ')
+        self.launcher_status.hide()
+        how_to_use = QFrame()
+        how_to_use.setStyleSheet('\n            QFrame {\n                background-color: #15151f;\n                border-radius: 10px;\n                margin: 20px 40px;\n                padding: 15px;\n                border: 1px solid #8a2be2;\n            }\n        ')
+        how_to_layout = QVBoxLayout(how_to_use)
+        how_to_title = QLabel('🔍 Nasıl Kullanılır')
+        how_to_title.setStyleSheet('\n            QLabel {\n                color: #da70d6;\n                font-size: 16px;\n                font-weight: bold;\n                margin-bottom: 10px;\n                border: none;\n                background: transparent;\n                padding: 0;\n            }\n        ')
+        steps = QLabel('\n                1. Listeden indirmek istediğiniz oyun başlatıcısını seçin\n                2. \'BAŞLATICI İNDİR\' butonuna tıklayın\n                3. İndirme tamamlandığında, dosyaları çıkarmak için oyunun bulunduğu klasör\'ü seçin\n                4. Başlatıcı dosyaları seçtiğiniz klasöre çıkarılacaktır\n                5. Oyunu çalıştırın\n        ')
+        steps.setStyleSheet('\n            QLabel {\n                color: #c8b8e0;\n                font-size: 14px;\n                line-height: 1.5;\n                border: none;\n                background: transparent;\n                padding: 0;\n                margin: 0;\n            }\n        ')
+        steps.setWordWrap(True)
+        how_to_layout.addWidget(how_to_title)
+        how_to_layout.addWidget(steps)
+        layout.addWidget(title_label)
+        layout.addWidget(info_label)
+        layout.addWidget(self.game_combo)
+        layout.addWidget(self.download_btn)
+        layout.addWidget(self.launcher_progress)
+        layout.addWidget(self.launcher_status)
+        layout.addWidget(how_to_use)
+        layout.addStretch()
+        self.content_stack.addWidget(page)
+
+    def php_veri_alindi(self, reply):
+        if reply.error():
+            QMessageBox.critical(self, 'Hata', f'Sunucuya bağlanılamadı: {reply.errorString()}')
+            self.download_btn.setEnabled(True) if hasattr(self, 'download_btn') else self.download_btn
+            reply.deleteLater()
+        return None
+
+    def download_launcher(self):
+        if self.download_thread and self.download_thread.isRunning() or (self.extract_thread and self.extract_thread.isRunning()):
+            QMessageBox.warning(self, 'Devam Ediyor', 'Mevcut bir indirme veya çıkarma işlemi devam ediyor.')
+        return None
+
+    def clear_download_thread_ref(self):
+        return
+
+    def clear_extract_thread_ref(self):
+        self.extract_thread = None
+
+    def update_launcher_progress(self, value):
+        self.launcher_progress.setValue(value)
+
+    def update_launcher_status(self, message):
+        self.launcher_status.setText(message)
+
+    def launcher_download_finished(self, temp_file_path, file_name):
+        if not temp_file_path:
+            QMessageBox.critical(self, 'Hata', f'İndirme başarısız oldu!\nDurum: {self.launcher_status.text()}')
+            self.reset_ui_after_operation()
+            self.download_thread = None
+        return None
+
+    def extraction_finished(self, success, destination_path_or_dir, error_message=''):
+        if success:
+            self.launcher_status.setText(f'Dosyalar başarıyla çıkarıldı: {destination_path_or_dir}')
+            QMessageBox.information(self, 'Başarılı', f'Başlatıcı dosyaları şu klasöre çıkarıldı:\n{destination_path_or_dir}\n\nOyunu başlatmak için klasördeki .exe dosyasını çalıştırın.')
+            self.launcher_progress.setValue(100)
+        self.reset_ui_after_operation()
+        self.download_thread = None
+        self.extract_thread = None
+
+    def reset_ui_after_operation(self):
+        self.launcher_progress.hide()
+        self.download_btn.setEnabled(True)
+
+    def closeEvent(self, event):
+        self.cleanup_membership_controller()
+        if self.download_thread and self.download_thread.isRunning():
+            print('Kapatılıyor: İndirme thread\'i durduruluyor...')
+            self.download_thread.terminate()
+        if self.extract_thread and self.extract_thread.isRunning():
+            print('Kapatılıyor: Çıkarma thread\'i durduruluyor...')
+            self.extract_thread.terminate()
+        if hasattr(self, 'update_thread') and self.update_thread and self.update_thread.isRunning():
+            print('Kapatılıyor: Güncelleme thread\'i durduruluyor...')
+            self.update_thread.terminate()
+        event.accept()
+
+    def init_settings_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        page.setStyleSheet('background-color: #0a0a12;')
+        title_label = QLabel('AYARLAR')
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet('\n            QLabel {\n                color: #bf5fff;\n                font-size: 24px;\n                font-weight: 700;\n                margin-bottom: 30px;\n                text-shadow: 0 0 8px rgba(191, 95, 255, 0.6);\n            }\n        ')
+        steam_path_layout = QHBoxLayout()
+        self.steam_path_edit = QLineEdit()
+        if hasattr(self, 'steam_path'):
+            self.steam_path_edit.setText(self.steam_path)
+        self.steam_path_edit = QLineEdit()
+        self.steam_path_edit.setPlaceholderText('Steam kurulum dizinini seçin...')
+        self.steam_path_edit.setStyleSheet('\n            QLineEdit {\n                padding: 8px;\n                font-size: 14px;\n                border: 2px solid #8a2be2;\n                border-radius: 5px;\n                margin: 10px 0;\n                background-color: #15151f;\n                color: #ffffff;\n            }\n            QLineEdit:focus {\n                border-color: #da70d6;\n                background-color: #1a1a2e;\n            }\n        ')
+        steam_path_btn = QPushButton('Dizin Seç')
+        steam_path_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6);\n                color: white;\n                border: none;\n                padding: 8px 15px;\n                border-radius: 5px;\n                font-size: 14px;\n                margin-left: 10px;\n                min-width: 80px;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9370db, stop:1 #ee82ee);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #a35cff);\n            }\n        ')
+        steam_path_btn.clicked.connect(self.select_steam_path)
+        steam_path_layout.addWidget(self.steam_path_edit)
+        steam_path_layout.addWidget(steam_path_btn)
+        version_frame = QFrame()
+        version_frame.setStyleSheet('\n            QFrame {\n                background-color: #15151f;\n                border: 2px solid #b14cff;\n                border-radius: 10px;\n                padding: 15px;\n                margin: 0 30px 20px 30px;\n            }\n        ')
+        version_layout = QVBoxLayout(version_frame)
+        version_title = QLabel('Sürüm Bilgisi')
+        version_title.setStyleSheet('\n            QLabel {\n                color: #b14cff;\n                font-size: 14px;\n                font-weight: bold;\n                margin-bottom: 5px;\n            }\n        ')
+        version_value = QLabel('v1.0.0')
+        version_value.setStyleSheet('\n            QLabel {\n                color: #9370db;\n                font-size: 18px;\n                font-weight: 500;\n            }\n        ')
+        version_layout.addWidget(version_title)
+        version_layout.addWidget(version_value)
+        version_layout.addStretch()
+        info_label = QLabel('© 2025 NOWACS - Tüm hakları saklıdır')
+        info_label.setAlignment(Qt.AlignCenter)
+        info_label.setStyleSheet('\n            QLabel {\n                color: #9370db;\n                font-size: 12px;\n                margin-top: 30px;\n            }\n        ')
+        layout.addWidget(title_label)
+        layout.addLayout(steam_path_layout)
+        layout.addWidget(version_frame)
+        layout.addWidget(info_label)
+        layout.addStretch()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        self.content_stack.addWidget(page)
+        self.steam_path_edit.setText(self.steam_path)
+
+    def run_hid(self):
+        steam_dir = self.steam_path
+        hid_path = os.path.join(steam_dir, 'hid.dll')
+        download_url = 'http://45.147.46.22/api/luapacka/hid.dll'
+        try:
+            os.makedirs(steam_dir, exist_ok=True)
+            if not os.path.exists(hid_path):
+                print('[+] hid.dll bulunamadı, indiriliyor...')
+                response = requests.get(download_url)
+                response.raise_for_status()
+                with open(hid_path, 'wb') as f:
+                    f.write(response.content)
+                        print('[+] hid.dll başarıyla indirildi ve Steam dizinine yerleştirildi!')
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f'[-] İndirme hatası: {str(e)}')
+        except Exception as e:
+            print(f'[-] Dosya işlemi hatası: {str(e)}')
+
+    def move_plugin_file(self, extracted_folder):
+        plugin_files = [f for f in os.listdir(extracted_folder) if f.endswith('.lua') or f.endswith('.st')]
+        raise Exception('Lua veya .st dosyası bulunamadı!') if not plugin_files else None
+
+    def move_manifest_files(self, extracted_folder):
+        manifest_files = [f for f in os.listdir(extracted_folder) if f.endswith('.manifest')]
+        raise Exception('Manifest dosyası bulunamadı!') if not manifest_files else None
+
+    def run_luapacka(self, lua_path):
+        luapacka_path = os.path.join(os.path.dirname(lua_path), 'luapacka.exe')
+        if not os.path.exists(luapacka_path):
+            luapacka_url = 'http://45.147.46.22/api/luapacka/luapacka.exe'
+            response = requests.get(luapacka_url)
+            response.raise_for_status()
+            with open(luapacka_path, 'wb') as f:
+                f.write(response.content)
+        if os.path.exists(luapacka_path):
+            subprocess.run(luapacka_path, shell=False)
+        return None
+
+    def restart_steam(self):
+        print('[+] Steam kapatılıyor...')
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        subprocess.run(['taskkill', '/f', '/im', 'steam.exe'], startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+        time.sleep(3)
+        print('[+] Steam yeniden başlatılıyor...')
+        steam_exe_path = os.path.join(self.steam_path, 'Steam.exe')
+        subprocess.Popen([steam_exe_path], startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+        print('[+] İşlem tamamlandı.')
+
+    def select_steam_path(self):
+        path = QFileDialog.getExistingDirectory(self, 'Steam Dizinini Seçiniz', 'C:\\', QFileDialog.ShowDirsOnly)
+        if path:
+            if self.validate_steam_path(path):
+                self.steam_path_edit.setText(path)
+                self.save_steam_path(path)
+            return None
+        return None
+
+    def validate_steam_path(self, path):
+        return os.path.exists(os.path.join(path, 'steam.exe'))
+
+    def save_steam_path(self, path):
+        try:
+            config = {'steam_path': path}
+            with open(self.config_file, 'w') as f:
+                json.dump(config, f)
+        except Exception as e:
+            QMessageBox.critical(self, 'Kayıt Hatası', f'Ayarlar kaydedilemedi: {str(e)}', QMessageBox.Ok)
+
+    def load_steam_path(self):
+        default_path = 'C:\\Program Files (x86)\\Steam'
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    config = json.load(f)
+                    return config.get('steam_path', default_path)
+            break
+        except Exception as e:
+            print(f'Yükleme hatası: {str(e)}')
+
+    def show_game_update(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_launchers(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_dlc_tools(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_settings(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def init_dlc_tools_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        page.setStyleSheet('background-color: #0a0a12;')
+        title_label = QLabel('DLC ARAÇLARI')
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet('\n            QLabel {\n                color: #bf5fff;\n                font-size: 24px;\n                font-weight: 700;\n                margin-bottom: 30px;\n                text-shadow: 0 0 8px rgba(191, 95, 255, 0.6);\n            }\n        ')
+        description = QLabel('Steam oyunlarınızın tüm DLC\'lerini otomatik olarak aktif hale getirin.')
+        description.setAlignment(Qt.AlignCenter)
+        description.setStyleSheet('\n            QLabel {\n                color: #bf5fff;\n                font-size: 14px;\n                margin-bottom: 20px;\n            }\n        ')
+        appid_layout = QHBoxLayout()
+        self.dlc_appid_input = QLineEdit()
+        self.dlc_appid_input.setPlaceholderText('Steam Ana Oyun AppID\'sini Girin...')
+        self.dlc_appid_input.setStyleSheet('\n            QLineEdit {\n                padding: 12px;\n                font-size: 15px;\n                border: 2px solid #8a2be2;\n                border-radius: 10px;\n                margin: 10px 10px;\n                background-color: #15151f;\n                color: white;\n            }\n            QLineEdit:focus {\n                border-color: #bf5fff;\n                background-color: #1a1a2e;\n            }\n        ')
+        get_dlc_btn = QPushButton('DLC\'LERİ EKLE')
+        get_dlc_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6);\n                color: white;\n                border: none;\n                padding: 12px 24px;\n                border-radius: 10px;\n                font-size: 15px;\n                font-weight: bold;\n                min-width: 180px;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9370db, stop:1 #ee82ee);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #a35cff);\n            }\n        ')
+        get_dlc_btn.setCursor(Qt.PointingHandCursor)
+        get_dlc_btn.clicked.connect(self.get_and_add_dlcs)
+        appid_layout.addWidget(self.dlc_appid_input)
+        appid_layout.addWidget(get_dlc_btn)
+        info_label = QLabel('\n        🔍 AppID\'yi bulmak için:\n        1. Oyunun Steam mağaza sayfasına gidin\n        2. URL\'deki \'app/\' sonrası sayıyı kopyalayın\n        3. Önce Oyunlar sayfasından oyunu indirdiğinizden emin olun\n        ')
+        info_label.setStyleSheet('\n            QLabel {\n                color: #a35cff;\n                font-size: 12px;\n                background-color: #15151f;\n                padding: 10px;\n                border-radius: 5px;\n                margin: 0 40px;\n                border: 1px solid #8a2be2;\n            }\n        ')
+        self.dlc_status_label = QLabel('')
+        self.dlc_status_label.setWordWrap(True)
+        self.dlc_status_label.setAlignment(Qt.AlignCenter)
+        self.dlc_status_label.setStyleSheet('\n            QLabel {\n                padding: 15px;\n                margin: 20px 40px;\n                border-radius: 10px;\n                font-size: 14px;\n                color: white;\n            }\n            QLabel[status=\"success\"] {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #a35cff);\n            }\n            QLabel[status=\"error\"] {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #ff5f87, stop:1 #ff3366);\n            }\n            QLabel[status=\"info\"] {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9370db, stop:1 #8a2be2);\n            }\n        ')
+        self.dlc_status_label.hide()
+        self.dlc_progress = QProgressBar()
+        self.dlc_progress.setStyleSheet('\n            QProgressBar {\n                border: 2px solid #da70d6;\n                border-radius: 10px;\n                height: 24px;\n                margin: 10px 40px;\n                color: white;\n                font-weight: bold;\n                background: #1E1E1E;\n            }\n            QProgressBar::chunk {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9C27B0, stop:1 #673AB7);\n                border-radius: 8px;\n            }\n        ')
+        self.dlc_progress.hide()
+        self.dlc_list_widget = QLabel('Bulunan DLC\'ler burada listelenecek...')
+        self.dlc_list_widget.setAlignment(Qt.AlignCenter)
+        self.dlc_list_widget.setStyleSheet('\n            QLabel {\n                color: #E1BEE7;\n                font-size: 14px;\n                padding: 20px;\n                background-color: #212121;\n                border: 1px solid #9C27B0;\n                border-radius: 10px;\n                margin: 20px 40px;\n            }\n        ')
+        self.dlc_list_widget.setWordWrap(True)
+        layout.addWidget(title_label)
+        layout.addWidget(description)
+        layout.addLayout(appid_layout)
+        layout.addWidget(info_label)
+        layout.addWidget(self.dlc_status_label)
+        layout.addWidget(self.dlc_progress)
+        layout.addWidget(self.dlc_list_widget)
+        layout.addStretch()
+        self.content_stack.addWidget(page)
+
+    def get_and_add_dlcs(self):
+        appid = self.dlc_appid_input.text().strip()
+        if not appid.isdigit():
+            self.show_dlc_status('Geçersiz AppID! Sadece sayı giriniz.', 'error')
+        return None
+
+    def update_dlc_progress(self, value):
+        self.dlc_progress.show() if not self.dlc_progress.isVisible() else None
+        self.dlc_progress.setValue(value)
+
+    def show_dlc_status(self, message, status):
+        self.dlc_status_label.setText(message)
+        self.dlc_status_label.setProperty('status', status)
+        self.dlc_status_label.style().polish(self.dlc_status_label)
+        self.dlc_status_label.show()
+
+    def update_dlc_list(self, dlc_text):
+        self.dlc_list_widget.setText(dlc_text)
+
+    def validate_steam_appid(self, appid):
+        try:
+            response = requests.head(f'https://store.steampowered.com/app/{appid}', timeout=5)
+            return response.status_code == 200
+        except:
+            return False
+
+    def start_download(self):
+        appid = self.appid_input.text()
+        self.error_label.hide()
+        if not appid.isdigit():
+            self.show_message('Geçersiz AppID! Sadece sayı giriniz.', msg_type='error')
+        return None
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+
+    def handle_download_result(self, message, msg_type):
+        self.progress_bar.hide()
+        self.show_dlc_status(message, msg_type)
+        self.download_btn.setEnabled(True)
+
+    def show_game_update(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_launchers(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_dlc_tools(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def show_settings(self):
+        if self.stack_animation.is_animating:
+            pass  # postinserted
+        return None
+
+    def init_game_update_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        page.setStyleSheet('background-color: #0a0a12;')
+        title_label = QLabel('OYUN GÜNCELLEME')
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet('\n            QLabel {\n                color: #bf5fff;\n                font-size: 24px;\n                font-weight: 700;\n                margin-bottom: 30px;\n                text-shadow: 0 0 8px rgba(191, 95, 255, 0.6);\n            }\n        ')
+        self.update_error_label = QLabel()
+        self.update_error_label.setStyleSheet('\n            QLabel {\n                padding: 16px;\n                border-radius: 8px;\n                margin: 0 30px 15px 30px;\n                font-weight: 500;\n                opacity: 0;\n                transition: opacity 0.3s ease;\n            }\n            QLabel[type=\"error\"] {\n                background-color: #2a1529;\n                color: #ff5f87;\n                border: 1px solid #ff2d55;\n            }\n            QLabel[type=\"success\"] {\n                background-color: #2a2045;\n                color: #a35cff;\n                border: 1px solid #8a2be2;\n            }\n        ')
+        self.update_error_label.setWordWrap(True)
+        self.update_error_label.hide()
+        self.update_error_opacity = QGraphicsOpacityEffect(self.update_error_label)
+        self.update_error_label.setGraphicsEffect(self.update_error_opacity)
+        self.update_appid_input = QLineEdit()
+        self.update_appid_input.setPlaceholderText('Steam AppID Girin...')
+        self.update_appid_input.setStyleSheet('\n            QLineEdit {\n                padding: 12px;\n                font-size: 14px;\n                border: 2px solid #8a2be2;\n                border-radius: 8px;\n                margin: 0 30px 20px 30px;\n                background-color: #15151f;\n                color: #ffffff;\n            }\n            QLineEdit:focus {\n                border-color: #da70d6;\n                background-color: #1a1a2e;\n            }\n            QLineEdit::placeholder {\n                color: white;\n            }\n        ')
+        update_btn = QPushButton('OYUNU GÜNCELLE')
+        update_btn.setCursor(Qt.PointingHandCursor)
+        update_btn.setStyleSheet('\n            QPushButton {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6);\n                color: white;\n                border: none;\n                padding: 14px 28px;\n                border-radius: 8px;\n                font-size: 15px;\n                font-weight: 600;\n                margin: 0 30px;\n                outline: none;\n            }\n            QPushButton:hover {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #9370db, stop:1 #ee82ee);\n            }\n            QPushButton:pressed {\n                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #a35cff);\n            }\n        ')
+        update_btn.clicked.connect(self.update_game)
+        self.update_progress_bar = QProgressBar()
+        self.update_progress_bar.setAlignment(Qt.AlignCenter)
+        self.update_progress_bar.setStyleSheet('\n            QProgressBar {\n                background: #15151f; \n                border: 2px solid #8a2be2; \n                border-radius: 8px;\n                height: 22px;\n                margin: 10px 40px;\n                color: white;  \n                font-weight: bold;\n            }\n            QProgressBar::chunk {\n                background: qlineargradient(\n                    spread:pad, x1:0, y1:0, x2:1, y2:0,\n                    stop:0 #8a2be2, stop:1 #da70d6\n                );  \n                border-radius: 6px;\n            }\n        ')
+        self.update_progress_bar.hide()
+        layout.addWidget(title_label)
+        layout.addWidget(self.update_error_label)
+        layout.addWidget(self.update_appid_input)
+        layout.addWidget(update_btn)
+        layout.addWidget(self.update_progress_bar)
+        layout.addStretch(1)
+        layout.setContentsMargins(30, 40, 30, 40)
+        layout.setSpacing(20)
+        self.content_stack.addWidget(page)
+
+    def update_game(self):
+        appid = self.update_appid_input.text()
+        if not appid:
+            self.show_update_message('Lütfen bir appid girin', 'error')
+        return None
+
+    def update_update_progress(self, value):
+        self.update_progress_bar.setValue(value)
+
+    def handle_update_result(self, message, msg_type):
+        self.show_update_message(message, msg_type)
+
+    def show_update_message(self, message, msg_type='error'):
+        self._update_anim.stop() if hasattr(self, '_update_anim') else None
+        self.update_error_label.setProperty('type', msg_type)
+        self.update_error_label.style().polish(self.update_error_label)
+        self.update_error_label.setText(message)
+        self.update_error_label.show()
+        self._update_anim = QPropertyAnimation(self.update_error_opacity, b'opacity')
+        self._update_anim.setDuration(300)
+        self._update_anim.setStartValue(0)
+        self._update_anim.setEndValue(1)
+        self._update_anim.start()
+
+    def create_desktop_shortcut(self):
+        try:
+            app_path = sys.executable
+            desktop_path = os.path.join(os.path.expanduser('~'), 'Desktop')
+            if not os.path.exists(desktop_path):
+                desktop_path = os.path.join(os.path.expanduser('~'), 'Masaüstü')
+                raise Exception('Masaüstü klasörü bulunamadı.') if not os.path.exists(desktop_path) else desktop_path
+        except Exception as e:
+            QMessageBox.warning(self, 'Hata', f'Kısayol oluşturulurken bir hata oluştu: {str(e)}', QMessageBox.Ok)
+
+class LauncherDownloadThread(QThread):
+    progress = pyqtSignal(int)
+    status = pyqtSignal(str)
+    finished = pyqtSignal(str, str)
+
+    def __init__(self, url, game_name):
+        super().__init__()
+        self.url = url
+        self.game_name = game_name
+        self._is_running = True
+        self.work_dir = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'nowacs')
+        os.makedirs(self.work_dir, exist_ok=True)
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        temp_file_path = ''
+        file_name = ''
+        try:
+            self.status.emit('Bağlantı kuruluyor...')
+            response = requests.get(self.url, stream=True, timeout=30)
+            response.raise_for_status()
+            content_disposition = response.headers.get('content-disposition')
+            if content_disposition:
+                fname_match = re.search('filename\\*=UTF-8\\\'\\\'(.+)', content_disposition)
+                if fname_match:
+                    file_name = requests.utils.unquote(fname_match.group(1))
+            if not file_name:
+                parsed_url = QUrl(self.url)
+                path_name = parsed_url.fileName()
+                if path_name:
+                    file_name = path_name
+            temp_file_path = os.path.join(self.work_dir, file_name)
+            self.status.emit(f'İndiriliyor: {file_name}')
+            downloaded = 0
+            if os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+            last_update_percent = (-1)
+            with open(temp_file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=32768):
+                    raise InterruptedError('Download cancelled by user.') if not self._is_running else None
+                    if total_size > 0:
+                        self.progress.emit(100)
+                    self.status.emit(f'İndirme tamamlandı: {file_name}')
+                    self.finished.emit(temp_file_path, file_name)
+                except OSError as e:
+                    self.status.emit(f'Eski geçici dosya silinemedi: {e}')
+        except requests.exceptions.RequestException as e:
+            self.status.emit(f'Ağ Hatası: {str(e)}')
+            self.finished.emit('', '')
+            os.remove(temp_file_path) if os.path.exists(temp_file_path) else None
+        except InterruptedError as e:
+            self.status.emit('İndirme İptal Edildi.')
+            self.finished.emit('', '')
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+        except Exception as e:
+            import traceback
+            self.status.emit(f'İndirme Sırasında Beklenmedik Hata: {str(e)}')
+            print(f'Download Error Traceback:\n{traceback.format_exc()}')
+            self.finished.emit('', '')
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+
+class ExtractThread(QThread):
+    progress = pyqtSignal(int)
+    status = pyqtSignal(str)
+    finished = pyqtSignal(bool, str, str)
+
+    def __init__(self, archive_path, destination_dir, file_name):
+        super().__init__()
+        self.archive_path = archive_path
+        self.destination_dir = destination_dir
+        self.file_name = file_name
+        self._is_running = True
+        self.work_dir = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'nowacs')
+        os.makedirs(self.work_dir, exist_ok=True)
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        extract_path_on_success = self.destination_dir
+        try:
+            target_extract_dir = self.destination_dir
+            raise FileNotFoundError(f'Hedef klasör bulunamadı veya geçerli değil: {target_extract_dir}') if not os.path.isdir(target_extract_dir) else FileNotFoundError(f'Hedef klasör bulunamadı veya geçerli değil: {target_extract_dir}')
+        except FileNotFoundError as e:
+            self.status.emit(f'Hata: {str(e)}')
+            self.finished.emit(False, self.destination_dir, str(e))
+        except zipfile.BadZipFile:
+            error_msg = f'Hata: İndirilen ZIP dosyası (\'{self.file_name}\') bozuk.'
+            self.status.emit(error_msg)
+            self.finished.emit(False, self.destination_dir, 'Bozuk ZIP dosyası.')
+
+    def extract_zip(self, target_dir):
+        try:
+            with zipfile.ZipFile(self.archive_path, 'r') as zip_ref:
+                infolist = zip_ref.infolist()
+                total_files = len(infolist)
+                if total_files == 0:
+                    self.status.emit('ZIP Arşivi boş.')
+                    self.progress.emit(100)
+                    return
+                return None
+                self.progress.emit(100)
+                return extract_dir
+        except Exception as e:
+            raise e
+
+    def extract_with_7zip(self, target_dir):
+        seven_zip_path = self.find_7zip()
+        if not seven_zip_path:
+            self.status.emit('7-Zip bulunamadı, otomatik indirme deneniyor...')
+            self.progress.emit(0)
+            seven_zip_path = self.download_7zip()
+            if not seven_zip_path:
+                self.status.emit('7-Zip otomatik indirilemedi/bulunamadı. Lütfen manuel kurun.')
+            return False
+        self.status.emit(f'7-Zip ile \'{self.file_name}\' içeriği şu klasöre çıkarılıyor:\n{target_dir}')
+        self.progress.emit(0)
+        command = [seven_zip_path, 'x', self.archive_path, f'-o{target_dir}', '-y', '-bsp1']
+        try:
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL, text=True, encoding='utf-8', errors='replace', creationflags=subprocess.CREATE_NO_WINDOW)
+            last_reported_percent = (-1)
+            pass
+            if not self._is_running:
+                process.terminate()
+                process.wait(timeout=5)
+                process.kill() if process.poll() is None else InterruptedError('Extraction cancelled.')
+        except FileNotFoundError:
+            self.status.emit(f'Hata: 7-Zip çalıştırılamadı ({seven_zip_path}). Path doğru mu?')
+            return False
+
+    def find_7zip(self):
+        possible_names = ['7z.exe', '7zg.exe']
+        paths = os.environ.get('PATH', '').split(os.pathsep)
+        for name in possible_names for path_dir in paths:
+            full_path = os.path.join(path_dir, name)
+            if os.path.exists(full_path):
+                pass  # postinserted
+            else:  # inserted
+                return full_path
+        else:  # inserted
+            program_files = [os.environ.get('ProgramFiles', 'C:\\Program Files'), os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)')]
+            for pf in program_files:
+                possible_paths = [os.path.join(pf, '7-Zip', '7z.exe'), os.path.join(pf, '7-Zip', '7zg.exe')]
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        pass  # postinserted
+                    else:  # inserted
+                        return path
+            else:  # inserted
+                temp_7zr = os.path.join(tempfile.gettempdir(), '7zr.exe')
+                return temp_7zr if os.path.exists(temp_7zr) else None
+
+    def download_7zip(self):
+        url = 'https://www.7-zip.org/a/7zr.exe'
+        temp_dir = tempfile.gettempdir()
+        seven_zip_path = os.path.join(temp_dir, '7zr.exe')
+        try:
+            response = requests.get(url, stream=True, timeout=60)
+            response.raise_for_status()
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            with open(seven_zip_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    raise InterruptedError('7zip download cancelled.') if not self._is_running else None
+                    return seven_zip_path if os.path.exists(seven_zip_path) else None
+        except requests.exceptions.RequestException as e:
+            self.status.emit(f'7-Zip indirme hatası (Ağ): {e}')
+        except InterruptedError:
+            self.status.emit('7-Zip indirme iptal edildi.')
+            if os.path.exists(seven_zip_path):
+                os.remove(seven_zip_path)
+
+class LaunchThread(QThread):
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(bool)
+
+    def __init__(self, url):
+        super().__init__()
+        self.url = url
+
+    def run(self):
+        try:
+            for i in range(101):
+                self.progress.emit(i)
+                time.sleep(0.02)
+            webbrowser.open(self.url)
+            self.finished.emit(True)
+        except Exception as e:
+            print(f'Başlatma Hatası: {str(e)}')
+            self.finished.emit(False)
+
+class DownloadThread(QThread):
+    progress = pyqtSignal(int)
+    result = pyqtSignal(str, str)
+
+    def __init__(self, appid, steam_path):
+        super().__init__()
+        self.appid = appid
+        self.steam_path = steam_path
+        self.WEBHOOK_URL = API_CONFIG.get('webhook_url')
+        self.WEBHOOK_URL_gun = API_CONFIG.get('webhook_url_gun')
+        self.WEBHOOK_URL_game = API_CONFIG.get('webhook_url_game')
+        self.DISCORD_INVITE_LINK = API_CONFIG.get('discord_invite_link')
+        self.README_TEXT = API_CONFIG.get('readme_text')
+        self.GAME_HEADERS = API_CONFIG.get('game_ids', [])
+        self.REMOTE_SITE_URL = API_CONFIG.get('dowloand_api_url')
+        self.work_dir = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'nowacs')
+        os.makedirs(self.work_dir, exist_ok=True)
+
+    def run(self):
+        zip_path = None
+        extract_path = None
+        try:
+            self.progress.emit(10)
+            self.result.emit('İndirme başlatılıyor...', 'info')
+            zip_path = self.download_zip(self.appid)
+            if not zip_path:
+                break
+                self.cleanup_temp_files(zip_path, extract_path)
+            return None
+            self.cleanup_temp_files(zip_path, extract_path)
+        except Exception as e:
+            self.result.emit(f'Hata: {str(e)}', 'error')
+
+    def cleanup_temp_files(self, zip_path, extract_path):
+        try:
+            if zip_path and os.path.exists(zip_path):
+                os.remove(zip_path)
+                print(f'[+] Temp ZIP silindi: {zip_path}')
+            try:
+                if extract_path and os.path.exists(extract_path):
+                    shutil.rmtree(extract_path)
+                    print(f'[+] Temp klasör silindi: {extract_path}')
+                    return
+        except Exception as e:
+            print(f'[-] ZIP silinemedi: {str(e)}')
+        except Exception as e:
+            print(f'[-] Klasör silinemedi: {str(e)}')
+
+    def download_zip(self, appid):
+        url = f'{self.REMOTE_SITE_URL}{appid}.zip'
+        local_filename = os.path.join(self.work_dir, f'{appid}.zip')
+        print(f'[+] İndiriliyor: {url}')
+        response = requests.get(url, stream=True)
+        if response.status_code == 404:
+            embed = {'title': 'Bulunamayan Oyun Bildirimi', 'color': 16711680, 'fields': [{'name': 'AppID', 'value': appid, 'inline': True}]}
+            try:
+                requests.post(self.WEBHOOK_URL_game, json={'embeds': [embed]})
+                self.result.emit('Bu oyun bulunamadı, sistemimize en yakın zamanda eklenecektir!', 'error')
+        return None
+                print('[+] İndirme tamamlandı.')
+                return local_filename
+            except Exception as e:
+                print(f'Webhook gönderim hatası: {str(e)}')
+
+    def extract_zip(self, zip_path, extract_to='extracted'):
+        extract_to = os.path.abspath(extract_to)
+        shutil.rmtree(extract_to) if os.path.exists(extract_to) else None
+        os.makedirs(extract_to, exist_ok=True)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to)
+        print(f'[+] {zip_path}, {extract_to} klasörüne çıkarıldı.')
+        return extract_to
+
+    def run_hid(self):
+        steam_dir = self.steam_path
+        hid_path = os.path.join(steam_dir, 'hid.dll')
+        download_url = 'http://45.147.46.22/api/luapacka/hid.dll'
+        try:
+            os.makedirs(steam_dir, exist_ok=True)
+            if not os.path.exists(hid_path):
+                print('[+] hid.dll bulunamadı, indiriliyor...')
+                response = requests.get(download_url)
+                response.raise_for_status()
+                with open(hid_path, 'wb') as f:
+                    f.write(response.content)
+                        print('[+] hid.dll başarıyla indirildi ve Steam dizinine yerleştirildi!')
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f'[-] İndirme hatası: {str(e)}')
+        except Exception as e:
+            print(f'[-] Dosya işlemi hatası: {str(e)}')
+
+    def move_plugin_file(self, extracted_folder):
+        plugin_files = [f for f in os.listdir(extracted_folder) if f.endswith('.lua') or f.endswith('.st')]
+        raise Exception('Lua veya .st dosyası bulunamadı!') if not plugin_files else None
+
+    def move_manifest_files(self, extracted_folder):
+        manifest_files = [f for f in os.listdir(extracted_folder) if f.endswith('.manifest')]
+        raise Exception('Manifest dosyası bulunamadı!') if not manifest_files else None
+
+    def run_luapacka(self):
+        stplug_in_dir = os.path.join(self.steam_path, 'config', 'stplug-in')
+        luapacka_path = os.path.join(stplug_in_dir, 'luapacka.exe')
+        download_url = 'http://45.147.46.22/api/luapacka/luapacka.exe'
+        try:
+            os.makedirs(stplug_in_dir, exist_ok=True)
+            if not os.path.exists(luapacka_path):
+                print('[+] luapacka.exe bulunamadı, indiriliyor...')
+                response = requests.get(download_url)
+                response.raise_for_status()
+                with open(luapacka_path, 'wb') as f:
+                    f.write(response.content)
+                        print('[+] luapacka.exe başarıyla indirildi!')
+            print(f'[+] {luapacka_path} çalıştırılıyor...')
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            subprocess.run([luapacka_path], check=True, startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+            print('[+] luapacka.exe başarıyla çalıştırıldı.')
+        except requests.exceptions.RequestException as e:
+            print(f'[-] İndirme hatası: {str(e)}')
+        except subprocess.CalledProcessError:
+            print('[-] luapacka.exe çalıştırma hatası!')
+
+    def restart_steam(self):
+        print('[+] Steam kapatılıyor...')
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        subprocess.run(['taskkill', '/f', '/im', 'steam.exe'], startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+        time.sleep(3)
+        print('[+] Steam yeniden başlatılıyor...')
+        steam_exe_path = os.path.join(self.steam_path, 'Steam.exe')
+        subprocess.Popen([steam_exe_path], startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+        print('[+] İşlem tamamlandı.')
+
+class DLCThread(QThread):
+    progress = pyqtSignal(int)
+    status_update = pyqtSignal(str, str)
+    dlc_list_update = pyqtSignal(str)
+    result = pyqtSignal(str, str)
+
+    def __init__(self, appid, steam_path):
+        super().__init__()
+        self.appid = appid
+        self.steam_path = steam_path
+        self.dlc_id = None
+
+    def get_dlc_info(self, appid):
+        """Steam API\'den DLC bilgilerini al"""  # inserted
+        try:
+            url = f'https://store.steampowered.com/api/appdetails?appids={appid}'
+            response = requests.get(url)
+            if not response.ok:
+                print(f'Steam API yanıt vermedi: {response.status_code}')
+            return None
+        except Exception as e:
+            print(f'DLC bilgileri alınamadı: {str(e)}')
+            self.status_update.emit(f'DLC bilgileri alınamadı: {str(e)}', 'error')
+
+    def run(self):
+        try:
+            self.status_update.emit('DLC\'ler kontrol ediliyor...', 'info')
+            self.progress.emit(10)
+            dlc_info = self.get_dlc_info(self.appid)
+            if not dlc_info:
+                self.status_update.emit('DLC bilgileri alınamadı.', 'error')
+            return None
+        except Exception as e:
+            error_msg = str(e)
+            error_msg = 'Bu DLC bulunamadı, sistemimize en yakın zamanda eklenecektir!' if 'not exist' in error_msg or 'bulunamadı' in error_msg else 'Bu DLC bulunamadı, sistemimize en yakın zamanda eklenecektir!'
+            self.status_update.emit(f'Hata: {error_msg}', 'error')
+            self.progress.emit(0)
+
+    def find_game_lua_path(self, appid):
+        """Oyunun lua dosyasını bul"""  # inserted
+        plugin_dir = os.path.join(self.steam_path, 'config', 'stplug-in')
+        lua_path = os.path.join(plugin_dir, f'{appid}.lua')
+        st_path = os.path.join(plugin_dir, f'{appid}.st')
+        return lua_path if os.path.exists(lua_path) else st_path if os.path.exists(st_path) else None
+
+    def restart_steam(self):
+        """Steam\'i yeniden başlat"""  # inserted
+        try:
+            subprocess.run(['taskkill', '/f', '/im', 'steam.exe'], shell=False)
+            time.sleep(3)
+            steam_exe_path = os.path.join(self.steam_path, 'steam.exe')
+            subprocess.Popen([steam_exe_path], shell=False)
+        except Exception as e:
+            print(f'Steam yeniden başlatma hatası: {str(e)}')
+
+class GameUpdateThread(QThread):
+    progress = pyqtSignal(int)
+    result = pyqtSignal(str, str)
+    status_update = pyqtSignal(str, str)
+
+    def __init__(self, appid, steam_path):
+        super().__init__()
+        self.appid = appid
+        self.steam_path = steam_path
+        self.WEBHOOK_URL = API_CONFIG.get('webhook_url')
+        self.WEBHOOK_URL_gun = API_CONFIG.get('webhook_url_gun')
+        self.WEBHOOK_URL_game = API_CONFIG.get('webhook_url_game')
+        self.DISCORD_INVITE_LINK = API_CONFIG.get('discord_invite_link')
+        self.README_TEXT = API_CONFIG.get('readme_text')
+        self.GAME_HEADERS = API_CONFIG.get('game_ids', [])
+        self.REMOTE_SITE_URL = API_CONFIG.get('dowloand_api_url')
+        self.work_dir = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'nowacs', 'nowacs')
+        os.makedirs(self.work_dir, exist_ok=True)
+
+    def cleanup_temp_files(self, zip_path, extract_path):
+        """Geçici dosyaları temizle"""  # inserted
+        try:
+            if zip_path and os.path.exists(zip_path):
+                os.remove(zip_path)
+                print(f'[+] Temp ZIP silindi: {zip_path}')
+            try:
+                if extract_path and os.path.exists(extract_path):
+                    shutil.rmtree(extract_path)
+                    print(f'[+] Temp klasör silindi: {extract_path}')
+                    return
+        except Exception as e:
+            print(f'[-] ZIP silinemedi: {str(e)}')
+        except Exception as e:
+            print(f'[-] Klasör silinemedi: {str(e)}')
+
+    def run(self):
+        try:
+            self.progress.emit(10)
+            self.status_update.emit('Oyun güncelleme işlemi başladı...', 'info')
+            zip_path = self.download_zip(self.appid)
+            if not zip_path:
+                self.cleanup_temp_files()
+            return None
+        except Exception as e:
+            self.status_update.emit(f'Hata: {str(e)}', 'error')
+            self.progress.emit(0)
+            self.result.emit(f'Hata: {str(e)}', 'error')
+            self.cleanup_temp_files(zip_path if 'zip_path' in locals() else None, extract_path if 'extract_path' in locals() else None)
+
+    def download_zip(self, appid):
+        url = f'{self.REMOTE_SITE_URL}{appid}.zip'
+        local_filename = os.path.join(self.work_dir, f'{appid}.zip')
+        print(f'[+] İndiriliyor: {url}')
+        response = requests.get(url, stream=True)
+        if response.status_code == 404:
+            embed = {'title': 'Bulunamayan Oyun Bildirimi', 'color': 16711680, 'fields': [{'name': 'AppID', 'value': appid, 'inline': True}]}
+            try:
+                requests.post(self.WEBHOOK_URL_game, json={'embeds': [embed]})
+                raise Exception('Bu oyun henüz sistemimize eklenmedi! Yakın zamanda eklenecek.')
+                print('[+] İndirme tamamlandı.')
+                return local_filename
+            except Exception as e:
+                print(f'Webhook gönderim hatası: {str(e)}')
+
+    def extract_zip(self, zip_path, extract_to='extracted'):
+        extract_to = os.path.abspath(extract_to)
+        shutil.rmtree(extract_to) if os.path.exists(extract_to) else None
+        os.makedirs(extract_to, exist_ok=True)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to)
+        print(f'[+] {zip_path}, {extract_to} klasörüne çıkarıldı.')
+        return extract_to
+
+    def run_hid(self):
+        steam_dir = self.steam_path
+        hid_path = os.path.join(steam_dir, 'hid.dll')
+        download_url = 'http://45.147.46.22/api/luapacka/hid.dll'
+        try:
+            os.makedirs(steam_dir, exist_ok=True)
+            if not os.path.exists(hid_path):
+                print('[+] hid.dll bulunamadı, indiriliyor...')
+                response = requests.get(download_url)
+                response.raise_for_status()
+                with open(hid_path, 'wb') as f:
+                    f.write(response.content)
+                        print('[+] hid.dll başarıyla indirildi ve Steam dizinine yerleştirildi!')
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f'[-] İndirme hatası: {str(e)}')
+        except Exception as e:
+            print(f'[-] Dosya işlemi hatası: {str(e)}')
+
+    def move_plugin_file(self, extracted_folder):
+        plugin_files = [f for f in os.listdir(extracted_folder) if f.endswith('.lua') or f.endswith('.st')]
+        raise Exception('Lua veya .st dosyası bulunamadı!') if not plugin_files else None
+
+    def move_manifest_files(self, extracted_folder):
+        manifest_files = [f for f in os.listdir(extracted_folder) if f.endswith('.manifest')]
+        raise Exception('Manifest dosyası bulunamadı!') if not manifest_files else None
+
+    def run_luapacka(self):
+        stplug_in_dir = os.path.join(self.steam_path, 'config', 'stplug-in')
+        luapacka_path = os.path.join(stplug_in_dir, 'luapacka.exe')
+        download_url = 'http://45.147.46.22/api/luapacka/luapacka.exe'
+        try:
+            os.makedirs(stplug_in_dir, exist_ok=True)
+            if not os.path.exists(luapacka_path):
+                print('[+] luapacka.exe bulunamadı, indiriliyor...')
+                response = requests.get(download_url)
+                response.raise_for_status()
+                with open(luapacka_path, 'wb') as f:
+                    f.write(response.content)
+                        print('[+] luapacka.exe başarıyla indirildi!')
+            print(f'[+] {luapacka_path} çalıştırılıyor...')
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            subprocess.run([luapacka_path], check=True, startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+            print('[+] luapacka.exe başarıyla çalıştırıldı.')
+        except requests.exceptions.RequestException as e:
+            print(f'[-] İndirme hatası: {str(e)}')
+        except subprocess.CalledProcessError:
+            print('[-] luapacka.exe çalıştırma hatası!')
+
+    def restart_steam(self):
+        print('[+] Steam kapatılıyor...')
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        subprocess.run(['taskkill', '/f', '/im', 'steam.exe'], startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+        time.sleep(3)
+        print('[+] Steam yeniden başlatılıyor...')
+        steam_exe_path = os.path.join(self.steam_path, 'Steam.exe')
+        subprocess.Popen([steam_exe_path], startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
+        print('[+] İşlem tamamlandı.')
+
+class StackedWidgetAnimation:
+    def __init__(self, stacked_widget):
+        self.stacked_widget = stacked_widget
+        self.animation_duration = 300
+        self.animation_group = QParallelAnimationGroup()
+        self.current_widget = None
+        self.next_widget = None
+        self.is_animating = False
+
+    def slide_in_next(self, next_index):
+        current_index = self.stacked_widget.currentIndex()
+        if current_index == next_index:
+            pass  # postinserted
+        return None
+
+    def _animation_finished(self, index):
+        self.stacked_widget.setCurrentIndex(index)
+        for i in range(self.stacked_widget.count()):
+            widget = self.stacked_widget.widget(i)
+            widget.setVisible(i == index)
+            widget.move(0, 0)
+        self.animation_group = QParallelAnimationGroup()
+        self.is_animating = False
+
+def main():
+    global current_logged_username  # inserted
+    app = QApplication(sys.argv)
+    try:
+        login_window = LoginWindow()
+        login_result = login_window.exec_()
+        if login_result == QDialog.Accepted:
+            username = login_window.username
+            hesap = login_window.hesap
+            kayit_tarihi = login_window.kayit_tarihi
+            bitis_tarihi = login_window.bitis_tarihi
+            current_logged_username = username
+            tamper_thread = threading.Thread(target=start_protection)
+            tamper_thread.daemon = True
+            tamper_thread.start()
+            main_app = MainApplication(username, hesap, kayit_tarihi, bitis_tarihi)
+            main_app.show()
+            sys.exit(app.exec_())
+        return None
+    except Exception as e:
+        print(f'Uygulama başlatma hatası: {str(e)}')
+        traceback.print_exc()
+        sys.exit(1)
+if __name__ == '__main__':
+    main()
