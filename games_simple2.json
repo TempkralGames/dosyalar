@@ -1,0 +1,17 @@
+[
+  {
+    "filename": "cs",
+    "title": "Counter-Strike",
+    "appid": "10"
+  },
+  {
+    "filename": "hl",
+    "title": "Half-Life",
+    "appid": "70"
+  },
+  {
+    "filename": "l4d2",
+    "title": "Left 4 Dead 2",
+    "appid": "550"
+  }
+]
